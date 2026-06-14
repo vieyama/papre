@@ -1,0 +1,210 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Auth.js models. Keep these field names compatible with @auth/prisma-adapter.
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  encryptionKey String?   @db.Text
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts Account[]
+  sessions Session[]
+
+  ownedWorkspaces Workspace[]       @relation("WorkspaceOwner")
+  memberships     WorkspaceMember[]
+  createdNodes    Node[]
+  pageShareInvites PageShareInvite[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum NodeType {
+  FOLDER
+  PAGE
+}
+
+enum WorkspaceRole {
+  OWNER
+  ADMIN
+  MEMBER
+  VIEWER
+}
+
+enum PageContentFormat {
+  JSON
+  MARKDOWN
+  HTML
+}
+
+enum PageShareVisibility {
+  INVITED
+  PUBLIC
+}
+
+model Workspace {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String?
+  icon      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  ownerId          String
+  owner            User              @relation("WorkspaceOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  workspaceMembers WorkspaceMember[]
+  nodes            Node[]
+
+  @@index([ownerId])
+  @@unique([ownerId, name])
+}
+
+model WorkspaceMember {
+  id String @id @default(cuid())
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role WorkspaceRole @default(MEMBER)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([workspaceId, userId])
+  @@index([workspaceId])
+  @@index([userId])
+}
+
+model Node {
+  id    String   @id @default(uuid())
+  title String
+  type  NodeType
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   Node?   @relation("NodeChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children Node[]  @relation("NodeChildren")
+
+  createdById String
+  createdBy   User   @relation(fields: [createdById], references: [id])
+
+  position Int @default(0)
+
+  icon       String?
+  coverImage String?
+  calendarDate DateTime? @db.Date
+
+  isPinned   Boolean @default(false)
+  isArchived Boolean @default(false)
+  isFavorite Boolean @default(false)
+
+  pageContent PageContent?
+  pageShare   PageShare?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([parentId])
+  @@index([workspaceId, parentId])
+  @@index([createdById])
+  @@index([type])
+  @@index([workspaceId, type, calendarDate])
+}
+
+model PageShare {
+  id String @id @default(uuid())
+
+  nodeId String @unique
+  node   Node   @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  visibility     PageShareVisibility @default(INVITED)
+  tokenHash      String              @unique
+  tokenEncrypted String              @db.Text
+
+  invitedUsers PageShareInvite[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([visibility])
+}
+
+model PageShareInvite {
+  id String @id @default(uuid())
+
+  shareId String
+  share   PageShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([shareId, userId])
+  @@index([userId])
+}
+
+model PageContent {
+  id String @id @default(uuid())
+
+  nodeId String @unique
+  node   Node   @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  format      PageContentFormat @default(HTML)
+  contentJson Json?
+  contentText String?           @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

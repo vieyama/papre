@@ -1,0 +1,97 @@
+kind: pipeline
+type: docker
+name: deploy
+
+trigger:
+  branch:
+    - main
+  event:
+    - push
+
+steps:
+  # ─────────────────────────────────────────
+  # 1. Write .env file from secrets
+  # ─────────────────────────────────────────
+  - name: write-env
+    image: alpine
+    environment:
+      POSTGRES_USER:
+        from_secret: POSTGRES_USER
+      POSTGRES_PASSWORD:
+        from_secret: POSTGRES_PASSWORD
+      POSTGRES_DB:
+        from_secret: POSTGRES_DB
+      AUTH_SECRET:
+        from_secret: AUTH_SECRET
+      AUTH_URL:
+        from_secret: AUTH_URL
+      GOOGLE_CLIENT_ID:
+        from_secret: GOOGLE_CLIENT_ID
+      GOOGLE_CLIENT_SECRET:
+        from_secret: GOOGLE_CLIENT_SECRET
+      APP_PORT:
+        from_secret: APP_PORT
+      DATA_ENCRYPTION_MASTER_KEY:
+        from_secret: DATA_ENCRYPTION_MASTER_KEY
+      MINIO_ACCESS_KEY:
+        from_secret: MINIO_ACCESS_KEY
+      MINIO_SECRET_KEY:
+        from_secret: MINIO_SECRET_KEY
+      MINIO_BUCKET:
+        from_secret: MINIO_BUCKET
+      SMTP_HOST:
+        from_secret: SMTP_HOST
+      SMTP_PORT:
+        from_secret: SMTP_PORT
+      SMTP_FROM_ADDRESS:
+        from_secret: SMTP_FROM_ADDRESS
+      SMTP_FROM_NAME:
+        from_secret: SMTP_FROM_NAME
+      SMTP_USERNAME:
+        from_secret: SMTP_USERNAME
+      SMTP_PASSWORD:
+        from_secret: SMTP_PASSWORD
+    commands:
+      - |
+        cat > /drone/src/.env <<EOF
+        POSTGRES_USER=$${POSTGRES_USER}
+        POSTGRES_PASSWORD=$${POSTGRES_PASSWORD}
+        POSTGRES_DB=$${POSTGRES_DB}
+        AUTH_SECRET=$${AUTH_SECRET}
+        AUTH_URL=$${AUTH_URL}
+        GOOGLE_CLIENT_ID=$${GOOGLE_CLIENT_ID}
+        GOOGLE_CLIENT_SECRET=$${GOOGLE_CLIENT_SECRET}
+        APP_BIND_ADDRESS=0.0.0.0
+        APP_PORT=$${APP_PORT}
+        DATA_ENCRYPTION_MASTER_KEY=$${DATA_ENCRYPTION_MASTER_KEY}
+        MINIO_ACCESS_KEY=$${MINIO_ACCESS_KEY}
+        MINIO_SECRET_KEY=$${MINIO_SECRET_KEY}
+        MINIO_BUCKET=$${MINIO_BUCKET}
+        SMTP_HOST=$${SMTP_HOST}
+        SMTP_PORT=$${SMTP_PORT}
+        SMTP_FROM_ADDRESS=$${SMTP_FROM_ADDRESS}
+        SMTP_FROM_NAME=$${SMTP_FROM_NAME}
+        SMTP_USERNAME=$${SMTP_USERNAME}
+        SMTP_PASSWORD=$${SMTP_PASSWORD}
+        COMPOSE_PROJECT_NAME=mydjurnal
+        EOF
+
+  # ─────────────────────────────────────────
+  # 2. Deploy via Docker Compose
+  # ─────────────────────────────────────────
+  - name: deploy
+    image: docker:24-cli
+    volumes:
+      - name: docker-sock
+        path: /var/run/docker.sock
+    commands:
+      - apk add --no-cache docker-cli-compose
+      - cd /drone/src
+      - docker compose down --remove-orphans
+      - docker compose up -d --build
+      - docker compose ps
+
+volumes:
+  - name: docker-sock
+    host:
+      path: /var/run/docker.sock
