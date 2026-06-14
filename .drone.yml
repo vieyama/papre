@@ -79,6 +79,11 @@ steps:
         COMPOSE_PROJECT_NAME=mydjurnal
         EOF
 
+  - name: debug-env
+    image: alpine
+    commands:
+      - cat /drone/src/.env
+  
   # ─────────────────────────────────────────
   # 2. Deploy via Docker Compose
   # ─────────────────────────────────────────
