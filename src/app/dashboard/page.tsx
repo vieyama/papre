@@ -1,3 +1,4 @@
+import type { Metadata } from "next"
 import { AppSidebar } from "@/components/app-sidebar"
 import {
   Breadcrumb,
@@ -13,6 +14,16 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar"
+
+export const metadata: Metadata = {
+  title: "Dashboard",
+  description: "Overview widgets and workspace navigation for My Djurnal.",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
+}
 
 export default function Page() {
   return (

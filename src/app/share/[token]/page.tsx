@@ -7,14 +7,51 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  referrer: "no-referrer",
-  robots: {
-    index: false,
-    follow: false,
-    nocache: true,
-  },
-};
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const result = await getSharedPageByToken(token);
+
+  if (result.status !== "ok") {
+    return {
+      title: "Shared page",
+      description: "View a page shared through My Djurnal.",
+      referrer: "no-referrer",
+      robots: {
+        index: false,
+        follow: false,
+        nocache: true,
+      },
+    };
+  }
+
+  const description = `Shared page from ${result.page.workspaceName} in My Djurnal.`;
+
+  return {
+    title: result.page.title,
+    description,
+    referrer: "no-referrer",
+    robots: {
+      index: false,
+      follow: false,
+      nocache: true,
+    },
+    openGraph: {
+      title: result.page.title,
+      description,
+      images: result.page.coverImage ? [result.page.coverImage] : undefined,
+    },
+    twitter: {
+      card: result.page.coverImage ? "summary_large_image" : "summary",
+      title: result.page.title,
+      description,
+      images: result.page.coverImage ? [result.page.coverImage] : undefined,
+    },
+  };
+}
 
 export default async function SharedPage({
   params,

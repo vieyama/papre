@@ -1,7 +1,13 @@
+import type { Metadata } from "next"
 import { GalleryVerticalEndIcon } from "lucide-react"
 import Link from "next/link"
 
 import { ResetPasswordForm } from "@/views/auth/reset-password-form"
+
+export const metadata: Metadata = {
+  title: "Reset password",
+  description: "Set a new password for your My Djurnal account.",
+}
 
 export default async function ResetPasswordPage({
   searchParams,

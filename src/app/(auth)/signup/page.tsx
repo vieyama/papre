@@ -1,10 +1,19 @@
-"use client"
-
+import type { Metadata } from "next"
 import { SignupForm } from "@/views/auth/signup-form"
 import { GalleryVerticalEndIcon } from "lucide-react"
 import Link from "next/link"
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 
-export default function SignupPage() {
+export const metadata: Metadata = {
+  title: "Create account",
+  description: "Create a My Djurnal account to organize your notes and pages.",
+}
+
+export default async function SignupPage() {
+  const session = await auth()
+  if (session?.user?.id) redirect("/")
+
   return (
     <div className="flex min-h-svh flex-col items-center justify-center gap-6 bg-muted p-6 md:p-10">
       <div className="flex w-full max-w-sm flex-col gap-6">

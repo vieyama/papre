@@ -11,6 +11,15 @@ import {
 } from "@/components/ui/sidebar"
 import { getWorkspacesByUserId } from "@/services/workspace"
 import { getNodesByUserId } from "@/services/node"
+import type { Metadata } from "next"
+
+export const metadata: Metadata = {
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+  },
+}
 
 export default async function ProtectedLayout({
   children,

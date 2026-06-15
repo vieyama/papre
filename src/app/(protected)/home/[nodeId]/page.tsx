@@ -9,7 +9,89 @@ import { NodeType, WorkspaceRole } from "@/generated/prisma/client";
 import { decryptUserData } from "@/lib/data-encryption";
 import prisma from "@/lib/prisma";
 import { sanitizePageContent } from "@/lib/sanitize-page-content";
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
+
+async function getNodeMetadata(sessionUserId: string, nodeId: string) {
+  const node = await prisma.node.findFirst({
+    where: {
+      id: nodeId,
+      isArchived: false,
+      workspace: {
+        OR: [
+          { ownerId: sessionUserId },
+          { workspaceMembers: { some: { userId: sessionUserId } } },
+        ],
+      },
+    },
+    select: {
+      title: true,
+      type: true,
+      workspace: {
+        select: {
+          ownerId: true,
+        },
+      },
+    },
+  });
+
+  if (!node) return null;
+
+  return {
+    title: await decryptUserData(
+      node.workspace.ownerId,
+      `node:${nodeId}:title`,
+      node.title,
+    ),
+    type: node.type,
+  };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ nodeId: string }>;
+}): Promise<Metadata> {
+  const session = await auth();
+  const { nodeId } = await params;
+
+  if (!session?.user?.id) {
+    return {
+      title: "Page",
+      robots: {
+        index: false,
+        follow: false,
+        nocache: true,
+      },
+    };
+  }
+
+  const node = await getNodeMetadata(session.user.id, nodeId);
+
+  if (!node) {
+    return {
+      title: "Page not found",
+      robots: {
+        index: false,
+        follow: false,
+        nocache: true,
+      },
+    };
+  }
+
+  return {
+    title: node.title,
+    description:
+      node.type === NodeType.FOLDER
+        ? `Browse pages inside ${node.title} in My Djurnal.`
+        : `Read and edit ${node.title} in My Djurnal.`,
+    robots: {
+      index: false,
+      follow: false,
+      nocache: true,
+    },
+  };
+}
 
 export default async function NodePage({
   params,

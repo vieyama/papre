@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { KeyRoundIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -18,6 +19,11 @@ import {
 } from "@/components/ui/card";
 import prisma from "@/lib/prisma";
 import { AccountProfileForm } from "@/views/account/account-profile-form";
+
+export const metadata: Metadata = {
+  title: "Account",
+  description: "Manage your profile and sign-in information in My Djurnal.",
+}
 
 function getInitials(name: string | null, email: string) {
   const source = name?.trim() || email;

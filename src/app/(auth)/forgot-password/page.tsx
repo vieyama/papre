@@ -1,7 +1,13 @@
+import type { Metadata } from "next"
 import { GalleryVerticalEndIcon } from "lucide-react"
 import Link from "next/link"
 
 import { ForgotPasswordForm } from "@/views/auth/forgot-password-form"
+
+export const metadata: Metadata = {
+  title: "Forgot password",
+  description: "Request a password reset link for your My Djurnal account.",
+}
 
 export default function ForgotPasswordPage() {
   return (

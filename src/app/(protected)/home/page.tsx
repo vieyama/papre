@@ -1,9 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/auth";
 import { WorkspaceHome } from "@/components/workspace-home";
 import { getNodesByUserId } from "@/services/node";
 import { getWorkspacesByUserId } from "@/services/workspace";
+
+export const metadata: Metadata = {
+  title: "Home",
+  description: "Browse all pages and folders in your My Djurnal workspaces.",
+}
 
 export default async function HomePage() {
   const session = await auth();
