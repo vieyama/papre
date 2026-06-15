@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowLeftRightIcon,
   CalendarDaysIcon,
   ChevronRightIcon,
   FilePlus2Icon,
@@ -15,7 +16,7 @@ import {
 } from "lucide-react";
 
 import { NodeType, type Node } from "@/generated/prisma/browser";
-import { createNode, deleteNode, renameNode } from "@/services/node";
+import { createNode, deleteNode, moveNode, renameNode } from "@/services/node";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -39,6 +40,13 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   SidebarGroup,
   SidebarGroupAction,
   SidebarGroupLabel,
@@ -51,6 +59,8 @@ import {
 type NodeWithChildren = Node & {
   children: NodeWithChildren[];
 };
+
+const ROOT_PARENT_VALUE = "__root__";
 
 function buildNodeTree(nodes: Node[]): NodeWithChildren[] {
   const nodesById = new Map<string, NodeWithChildren>();
@@ -81,16 +91,62 @@ function NodeIcon({ node }: { node: Node }) {
   );
 }
 
+function collectNodeIds(node: NodeWithChildren, nodeIds = new Set<string>()) {
+  nodeIds.add(node.id);
+
+  for (const child of node.children) {
+    collectNodeIds(child, nodeIds);
+  }
+
+  return nodeIds;
+}
+
+function buildMoveTargetOptions(
+  nodes: NodeWithChildren[],
+  excludedNodeIds: Set<string>,
+  parentPath: string[] = [],
+) {
+  const options: Array<{ id: string; label: string }> = [];
+
+  for (const node of nodes) {
+    const currentPath = [...parentPath, node.title];
+
+    if (
+      node.type === NodeType.FOLDER &&
+      !excludedNodeIds.has(node.id)
+    ) {
+      options.push({
+        id: node.id,
+        label: currentPath.join(" / "),
+      });
+    }
+
+    if (node.children.length > 0) {
+      options.push(
+        ...buildMoveTargetOptions(
+          node.children,
+          excludedNodeIds,
+          currentPath,
+        ),
+      );
+    }
+  }
+
+  return options;
+}
+
 function NodeTreeItem({
   node,
   canEdit,
   onCreate,
+  onMoveNode,
   onRenameNode,
   onDeleteNode,
 }: {
   node: NodeWithChildren;
   canEdit: boolean;
   onCreate: (type: NodeType, parentId?: string) => void;
+  onMoveNode: (node: NodeWithChildren) => void;
   onRenameNode: (node: NodeWithChildren) => void;
   onDeleteNode: (node: NodeWithChildren) => void;
 }) {
@@ -121,12 +177,36 @@ function NodeTreeItem({
             <span className="ml-1 size-6 shrink-0" />
           )}
 
-          <SidebarMenuButton asChild isActive={isActive} className="pl-1">
+          <SidebarMenuButton
+            asChild
+            isActive={isActive}
+            className={
+              canEdit
+                ? node.type === NodeType.FOLDER
+                  ? "pl-1 pr-20"
+                  : "pl-1 pr-8"
+                : "pl-1"
+            }
+          >
             <Link href={`/home/${node.id}`}>
               <NodeIcon node={node} />
               <span>{node.title}</span>
             </Link>
           </SidebarMenuButton>
+
+          {canEdit && node.type === NodeType.FOLDER && (
+            <SidebarMenuAction
+              type="button"
+              className="cursor-pointer right-8 aria-expanded:bg-muted"
+              showOnHover
+              onClick={() => onCreate(NodeType.PAGE, node.id)}
+              aria-label={`Add page inside ${node.title}`}
+              title="Add page inside"
+            >
+              <FilePlus2Icon />
+              <span className="sr-only">Add page inside {node.title}</span>
+            </SidebarMenuAction>
+          )}
 
           {canEdit && (
             <DropdownMenu>
@@ -145,14 +225,12 @@ function NodeTreeItem({
                       <FolderPlusIcon />
                       Add folder inside
                     </DropdownMenuItem>
-                    <DropdownMenuItem
-                      onSelect={() => onCreate(NodeType.PAGE, node.id)}
-                    >
-                      <FilePlus2Icon />
-                      Add page inside
-                    </DropdownMenuItem>
                   </>
                 )}
+                <DropdownMenuItem onSelect={() => onMoveNode(node)}>
+                  <ArrowLeftRightIcon />
+                  Move
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onRenameNode(node)}>
                   <PencilIcon />
                   Rename
@@ -178,6 +256,7 @@ function NodeTreeItem({
                   node={child}
                   canEdit={canEdit}
                   onCreate={onCreate}
+                  onMoveNode={onMoveNode}
                   onRenameNode={onRenameNode}
                   onDeleteNode={onDeleteNode}
                 />
@@ -206,10 +285,25 @@ export function NodeSidebar({
     React.useState<NodeWithChildren | null>(null);
   const [renameTitle, setRenameTitle] = React.useState("");
   const [renameError, setRenameError] = React.useState<string | null>(null);
+  const [nodeToMove, setNodeToMove] =
+    React.useState<NodeWithChildren | null>(null);
+  const [moveTargetParentId, setMoveTargetParentId] = React.useState(
+    ROOT_PARENT_VALUE,
+  );
+  const [moveError, setMoveError] = React.useState<string | null>(null);
   const [nodeToDelete, setNodeToDelete] =
     React.useState<NodeWithChildren | null>(null);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
+  const deleteButtonRef = React.useRef<HTMLButtonElement | null>(null);
   const tree = React.useMemo(() => buildNodeTree(nodes), [nodes]);
+  const moveTargetOptions = React.useMemo(() => {
+    if (!nodeToMove) return [];
+
+    return buildMoveTargetOptions(
+      tree,
+      collectNodeIds(nodeToMove),
+    );
+  }, [nodeToMove, tree]);
 
   function handleCreate(type: NodeType, parentId?: string) {
     startTransition(async () => {
@@ -251,6 +345,34 @@ export function NodeSidebar({
         router.push("/home");
       }
 
+      router.refresh();
+    });
+  }
+
+  function handleMoveNode(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    if (!nodeToMove) return;
+
+    setMoveError(null);
+
+    startTransition(async () => {
+      const result = await moveNode({
+        workspaceId,
+        nodeId: nodeToMove.id,
+        parentId:
+          moveTargetParentId === ROOT_PARENT_VALUE
+            ? null
+            : moveTargetParentId,
+      });
+
+      if (result.error) {
+        setMoveError(result.error);
+        return;
+      }
+
+      setNodeToMove(null);
+      setMoveTargetParentId(ROOT_PARENT_VALUE);
       router.refresh();
     });
   }
@@ -304,14 +426,14 @@ export function NodeSidebar({
       </SidebarGroup>
 
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-        <SidebarGroupLabel>Halaman</SidebarGroupLabel>
+        <SidebarGroupLabel>Page</SidebarGroupLabel>
         {canEdit && (
           <>
             <SidebarGroupAction
               type="button"
               disabled={isPending}
               onClick={() => handleCreate(NodeType.FOLDER)}
-              className="right-9"
+              className="right-9 cursor-pointer"
               title="Add folder"
             >
               <FolderPlusIcon />
@@ -322,6 +444,7 @@ export function NodeSidebar({
               disabled={isPending}
               onClick={() => handleCreate(NodeType.PAGE)}
               title="Add page"
+              className="cursor-pointer"
             >
               <FilePlus2Icon />
               <span className="sr-only">Add page</span>
@@ -336,6 +459,11 @@ export function NodeSidebar({
               node={node}
               canEdit={canEdit}
               onCreate={handleCreate}
+              onMoveNode={(node) => {
+                setMoveError(null);
+                setMoveTargetParentId(node.parentId ?? ROOT_PARENT_VALUE);
+                setNodeToMove(node);
+              }}
               onRenameNode={(node) => {
                 setRenameError(null);
                 setRenameTitle(node.title);
@@ -410,6 +538,71 @@ export function NodeSidebar({
       </Dialog>
 
       <Dialog
+        open={nodeToMove !== null}
+        onOpenChange={(open) => {
+          if (!open && !isPending) {
+            setNodeToMove(null);
+            setMoveTargetParentId(ROOT_PARENT_VALUE);
+            setMoveError(null);
+          }
+        }}
+      >
+        <DialogContent>
+          <form onSubmit={handleMoveNode}>
+            <DialogHeader>
+              <DialogTitle>
+                Move {nodeToMove?.type === NodeType.FOLDER ? "folder" : "page"}
+              </DialogTitle>
+              <DialogDescription>
+                Choose where to place this{" "}
+                {nodeToMove?.type === NodeType.FOLDER ? "folder" : "page"}.
+                {nodeToMove?.type === NodeType.FOLDER
+                  ? " All child pages and folders will move with it."
+                  : ""}
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="my-6 space-y-2">
+              <Select
+                value={moveTargetParentId}
+                onValueChange={setMoveTargetParentId}
+                disabled={isPending}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Choose destination" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ROOT_PARENT_VALUE}>
+                    Top level
+                  </SelectItem>
+                  {moveTargetOptions.map((option) => (
+                    <SelectItem key={option.id} value={option.id}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {moveError && (
+                <p className="text-sm text-destructive">{moveError}</p>
+              )}
+            </div>
+
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button type="button" variant="outline" disabled={isPending}>
+                  Cancel
+                </Button>
+              </DialogClose>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Moving..." : "Move"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
         open={nodeToDelete !== null}
         onOpenChange={(open) => {
           if (!open && !isPending) {
@@ -418,7 +611,12 @@ export function NodeSidebar({
           }
         }}
       >
-        <DialogContent>
+        <DialogContent
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            deleteButtonRef.current?.focus();
+          }}
+        >
           <DialogHeader>
             <DialogTitle>
               Delete {nodeToDelete?.type === NodeType.FOLDER ? "folder" : "page"}?
@@ -443,6 +641,7 @@ export function NodeSidebar({
               </Button>
             </DialogClose>
             <Button
+              ref={deleteButtonRef}
               variant="destructive"
               disabled={isPending}
               onClick={handleDeleteNode}

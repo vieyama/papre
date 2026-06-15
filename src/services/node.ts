@@ -32,6 +32,12 @@ type DeleteNodeInput = {
   nodeId: string;
 };
 
+type MoveNodeInput = {
+  workspaceId: string;
+  nodeId: string;
+  parentId?: string | null;
+};
+
 type RenameNodeInput = {
   workspaceId: string;
   nodeId: string;
@@ -61,10 +67,52 @@ async function canEditWorkspace(userId: string, workspaceId: string) {
 
   return access?.canEdit
     ? {
-        id: access.id,
-        ownerId: access.ownerId,
-      }
+      id: access.id,
+      ownerId: access.ownerId,
+    }
     : null;
+}
+
+function buildChildrenByParentId(
+  nodes: Array<{
+    id: string;
+    parentId: string | null;
+  }>,
+) {
+  const childrenByParentId = new Map<string, string[]>();
+
+  for (const node of nodes) {
+    if (!node.parentId) continue;
+
+    const children = childrenByParentId.get(node.parentId) ?? [];
+    children.push(node.id);
+    childrenByParentId.set(node.parentId, children);
+  }
+
+  return childrenByParentId;
+}
+
+function collectDescendantIds(
+  nodeId: string,
+  childrenByParentId: Map<string, string[]>,
+) {
+  const descendantIds = new Set<string>([nodeId]);
+  const pendingNodeIds = [nodeId];
+
+  while (pendingNodeIds.length > 0) {
+    const parentId = pendingNodeIds.pop();
+
+    if (!parentId) continue;
+
+    for (const childId of childrenByParentId.get(parentId) ?? []) {
+      if (descendantIds.has(childId)) continue;
+
+      descendantIds.add(childId);
+      pendingNodeIds.push(childId);
+    }
+  }
+
+  return descendantIds;
 }
 
 export async function getNodesByUserId(userId: string): Promise<Node[]> {
@@ -558,33 +606,10 @@ export async function deleteNode(input: DeleteNodeInput) {
       },
     });
 
-    const childrenByParentId = new Map<string, string[]>();
-
-    for (const node of workspaceNodes) {
-      if (!node.parentId) continue;
-
-      const children = childrenByParentId.get(node.parentId) ?? [];
-      children.push(node.id);
-      childrenByParentId.set(node.parentId, children);
-    }
-
-    const nodeIds = new Set<string>([targetNode.id]);
-    const pendingNodeIds = [targetNode.id];
-
-    while (pendingNodeIds.length > 0) {
-      const parentId = pendingNodeIds.pop();
-
-      if (!parentId) continue;
-
-      for (const childId of childrenByParentId.get(parentId) ?? []) {
-        if (nodeIds.has(childId)) continue;
-
-        nodeIds.add(childId);
-        pendingNodeIds.push(childId);
-      }
-    }
-
-    const ids = [...nodeIds];
+    const ids = [...collectDescendantIds(
+      targetNode.id,
+      buildChildrenByParentId(workspaceNodes),
+    )];
 
     await tx.node.updateMany({
       where: {
@@ -606,4 +631,130 @@ export async function deleteNode(input: DeleteNodeInput) {
   revalidatePath("/home", "layout");
 
   return { archivedNodeIds };
+}
+
+export async function moveNode(input: MoveNodeInput) {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return { error: "You must be signed in to move a node." };
+  }
+
+  const workspace = await canEditWorkspace(userId, input.workspaceId);
+
+  if (!workspace) {
+    return { error: "You do not have permission to edit this workspace." };
+  }
+
+  const normalizedParentId = input.parentId ?? null;
+
+  const movedNode = await prisma.$transaction(async (tx) => {
+    const node = await tx.node.findFirst({
+      where: {
+        id: input.nodeId,
+        workspaceId: input.workspaceId,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+        parentId: true,
+      },
+    });
+
+    if (!node) {
+      return null;
+    }
+
+    if (node.parentId === normalizedParentId) {
+      return {
+        id: node.id,
+        parentId: node.parentId,
+      };
+    }
+
+    const workspaceNodes = await tx.node.findMany({
+      where: {
+        workspaceId: input.workspaceId,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+        parentId: true,
+      },
+    });
+
+    const childrenByParentId = buildChildrenByParentId(workspaceNodes);
+    const descendantIds = collectDescendantIds(node.id, childrenByParentId);
+
+    if (normalizedParentId && descendantIds.has(normalizedParentId)) {
+      return {
+        error: "You cannot move a node into itself or its children.",
+      } as const;
+    }
+
+    if (normalizedParentId) {
+      const parent = await tx.node.findFirst({
+        where: {
+          id: normalizedParentId,
+          workspaceId: input.workspaceId,
+          type: NodeType.FOLDER,
+          isArchived: false,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      if (!parent) {
+        return {
+          error: "Destination folder was not found.",
+        } as const;
+      }
+    }
+
+    const lastSibling = await tx.node.findFirst({
+      where: {
+        workspaceId: input.workspaceId,
+        parentId: normalizedParentId,
+        isArchived: false,
+        id: {
+          not: node.id,
+        },
+      },
+      orderBy: { position: "desc" },
+      select: { position: true },
+    });
+
+    await tx.node.updateMany({
+      where: {
+        id: node.id,
+        workspaceId: input.workspaceId,
+        isArchived: false,
+      },
+      data: {
+        parentId: normalizedParentId,
+        position: (lastSibling?.position ?? -1) + 1,
+      },
+    });
+
+    return {
+      id: node.id,
+      parentId: normalizedParentId,
+    };
+  });
+
+  if (!movedNode) {
+    return { error: "Node was not found." };
+  }
+
+  if ("error" in movedNode) {
+    return { error: movedNode.error };
+  }
+
+  revalidatePath("/home", "layout");
+
+  return {
+    node: movedNode,
+  };
 }
