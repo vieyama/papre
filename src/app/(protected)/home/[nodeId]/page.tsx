@@ -196,7 +196,7 @@ export default async function NodePage({
         initialCoverImage={coverImage ?? null}
         editable={canEdit}
       />
-      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-8 py-4">
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 sm:px-8 py-4">
         <div className="flex w-full items-center justify-between">
           <NodeEmojiPicker
             nodeId={node.id}
@@ -206,12 +206,10 @@ export default async function NodePage({
             editable={canEdit}
           />
           {node.type === NodeType.PAGE && canEdit && (
-            <div className="mb-2 flex justify-end">
-              <PageShareDialog
-                nodeId={node.id}
-                workspaceId={node.workspaceId}
-              />
-            </div>
+            <PageShareDialog
+              nodeId={node.id}
+              workspaceId={node.workspaceId}
+            />
           )}
         </div>
         <NodeTitleEditor

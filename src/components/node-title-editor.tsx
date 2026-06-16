@@ -105,7 +105,7 @@ export function NodeTitleEditor({
         disabled={renameMutation.isPending}
         aria-label="Node title"
         aria-invalid={errors.title !== undefined}
-        className="w-full border-0 bg-transparent p-0 h-16 text-4xl font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:ring-0 disabled:opacity-70"
+        className="w-full border-0 bg-transparent p-0 h-16 text-2xl sm:text-4xl font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:ring-0 disabled:opacity-70"
       />
       )}
       {errors.title?.message && (

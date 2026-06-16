@@ -73,7 +73,7 @@ export function NodeEmojiPicker({
       <PopoverTrigger asChild>
         <button
           type="button"
-          className="mb-4 flex size-14 items-center justify-center rounded-lg text-4xl transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+          className="flex size-14 items-center justify-center rounded-lg text-4xl transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           disabled={!editable || updateIconMutation.isPending}
           aria-label="Change page icon"
         >

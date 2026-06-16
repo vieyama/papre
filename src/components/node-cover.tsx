@@ -151,7 +151,7 @@ export function NodeCover({
         className={
           coverImage
             ? "group/cover relative h-56 w-full overflow-hidden bg-muted bg-cover bg-center"
-            : "flex h-12 w-full items-center justify-center"
+            : "flex h-auto w-full items-center justify-center"
         }
         style={
           safeCoverImage

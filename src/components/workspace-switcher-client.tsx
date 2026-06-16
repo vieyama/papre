@@ -94,7 +94,7 @@ export function WorkspaceSwitcherClient({
     )
 
     function handleSelectWorkspace(workspace: Workspace) {
-        if (workspace.id === activeWorkspace.id) return
+        if (workspace.id === activeWorkspace?.id) return
 
         setSelectedWorkspace(workspace)
         router.replace("/home")
@@ -125,14 +125,14 @@ export function WorkspaceSwitcherClient({
                                 className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
                             >
                                 <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                                    <span>{activeWorkspace.icon || "🏠"}</span>
+                                    <span>{activeWorkspace?.icon || "🏠"}</span>
                                 </div>
                                 <div className="grid flex-1 text-left text-sm leading-tight">
                                     <span className="truncate font-medium">
-                                        {!hasHydrated ? "Loading..." : activeWorkspace.name}</span>
+                                        {!hasHydrated ? "Loading..." : activeWorkspace?.name}</span>
                                     <span className="truncate text-xs">
-                                        {activeWorkspace.memberCount > 1
-                                            ? `${activeWorkspace.memberCount} members`
+                                        {activeWorkspace?.memberCount > 1
+                                            ? `${activeWorkspace?.memberCount} members`
                                             : "Personal"}
                                     </span>
                                 </div>
@@ -166,8 +166,8 @@ export function WorkspaceSwitcherClient({
 
                             <DropdownMenuSeparator />
 
-                            {(activeWorkspace.currentUserRole === WorkspaceRole.OWNER ||
-                                activeWorkspace.currentUserRole === WorkspaceRole.ADMIN) && (
+                            {(activeWorkspace?.currentUserRole === WorkspaceRole.OWNER ||
+                                activeWorkspace?.currentUserRole === WorkspaceRole.ADMIN) && (
                                 <DropdownMenuItem
                                     className="gap-2 p-2"
                                     onSelect={() => setIsMembersDialogOpen(true)}
@@ -266,8 +266,8 @@ export function WorkspaceSwitcherClient({
             </Dialog>
 
             <WorkspaceMembersDialog
-                workspaceId={activeWorkspace.id}
-                workspaceName={activeWorkspace.name}
+                workspaceId={activeWorkspace?.id}
+                workspaceName={activeWorkspace?.name}
                 open={isMembersDialogOpen}
                 onOpenChange={setIsMembersDialogOpen}
             />

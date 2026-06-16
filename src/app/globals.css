@@ -131,12 +131,6 @@
   }
 }
 
-.bn-shadcn .bn-side-menu {
-  color: #7d797a;
-  margin-right: 4px;
-  gap: 4px;
-}
-
 .bn-side-menu button {
   cursor: pointer;
 }
@@ -144,4 +138,20 @@
 .bn-side-menu svg {
   width: 18px !important;
   height: 18px !important;
+}
+
+.bn-editor {
+  padding-inline: 40px !important;
+}
+
+@media (max-width: 768px) {
+  .bn-editor {
+    padding-inline: 15px !important;
+  }
+}
+
+.bn-mobile-formatting-toolbar {
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }

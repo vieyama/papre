@@ -93,7 +93,7 @@ export function WorkspaceHome({
   ).length;
   const folderCount = workspaceNodes.length - pageCount;
   const recentNodes = workspaceNodes.slice(0, 6);
-  const canEdit = activeWorkspace.currentUserRole !== WorkspaceRole.VIEWER;
+  const canEdit = activeWorkspace?.currentUserRole !== WorkspaceRole.VIEWER;
 
   function handleCreate(type: NodeType) {
     if (!activeWorkspace) return;
@@ -101,7 +101,7 @@ export function WorkspaceHome({
     setCreateError(null);
     startTransition(async () => {
       const result = await createNode({
-        workspaceId: activeWorkspace.id,
+        workspaceId: activeWorkspace?.id,
         type,
       });
 

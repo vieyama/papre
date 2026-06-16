@@ -55,6 +55,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
+  useSidebar,
 } from "@/components/ui/sidebar";
 type NodeWithChildren = Node & {
   children: NodeWithChildren[];
@@ -151,8 +152,15 @@ function NodeTreeItem({
   onDeleteNode: (node: NodeWithChildren) => void;
 }) {
   const pathname = usePathname();
+  const { isMobile, setOpenMobile } = useSidebar();
   const hasChildren = node.children.length > 0;
   const isActive = pathname === `/home/${node.id}`;
+
+  function handleNavigate() {
+    if (isMobile) {
+      setOpenMobile(false);
+    }
+  }
 
   return (
     <Collapsible
@@ -188,7 +196,7 @@ function NodeTreeItem({
                 : "pl-1"
             }
           >
-            <Link href={`/home/${node.id}`}>
+            <Link href={`/home/${node.id}`} onNavigate={handleNavigate}>
               <NodeIcon node={node} />
               <span>{node.title}</span>
             </Link>

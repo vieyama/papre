@@ -123,7 +123,6 @@ export default async function SharedPage({
           <EditorWrapper
             content={result.page.content}
             editable={false}
-            placeholder=""
           />
         </div>
       </article>

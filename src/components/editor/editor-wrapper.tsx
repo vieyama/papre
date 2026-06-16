@@ -7,7 +7,7 @@ const Editor = dynamic(() => import('.'), { ssr: false });
 export default function EditorWrapper({
     content,
     onChange,
-    placeholder = "Start writing...",
+    placeholder = "Type / to add blocks, headings, checklists, quotes, or dividers.",
     editable = true,
 }: {
     content?: string

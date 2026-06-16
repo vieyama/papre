@@ -70,6 +70,45 @@ export function NodeContentEditor({
     };
   }, []);
 
+  const saveNow = React.useCallback(() => {
+    if (!editable) return;
+
+    if (saveTimer.current) {
+      clearTimeout(saveTimer.current);
+      saveTimer.current = null;
+    }
+
+    const content = latestContent.current;
+
+    if (content === lastSavedContent.current) {
+      setSaveState("saved");
+      return;
+    }
+
+    setSaveState("pending");
+    saveMutation.mutate(content);
+  }, [editable, saveMutation]);
+
+  React.useEffect(() => {
+    if (!editable) return;
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (
+        (event.metaKey || event.ctrlKey) &&
+        event.key.toLowerCase() === "s"
+      ) {
+        event.preventDefault();
+        saveNow();
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [editable, saveNow]);
+
   function handleContentChange(content: string) {
     if (!editable) return;
 
@@ -87,6 +126,7 @@ export function NodeContentEditor({
     }
 
     saveTimer.current = setTimeout(() => {
+      saveTimer.current = null;
       saveMutation.mutate(latestContent.current);
     }, AUTOSAVE_DELAY_MS);
   }
@@ -121,7 +161,6 @@ export function NodeContentEditor({
       <EditorWrapper
         content={initialContent}
         onChange={handleContentChange}
-        placeholder="Start writing..."
         editable={editable}
       />
     </section>
