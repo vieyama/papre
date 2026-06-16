@@ -4,7 +4,9 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  ArrowDownIcon,
   ArrowLeftRightIcon,
+  ArrowUpIcon,
   CalendarDaysIcon,
   ChevronRightIcon,
   FilePlus2Icon,
@@ -16,7 +18,13 @@ import {
 } from "lucide-react";
 
 import { NodeType, type Node } from "@/generated/prisma/browser";
-import { createNode, deleteNode, moveNode, renameNode } from "@/services/node";
+import {
+  createNode,
+  deleteNode,
+  moveNode,
+  renameNode,
+  reorderNode,
+} from "@/services/node";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -63,6 +71,30 @@ type NodeWithChildren = Node & {
 
 const ROOT_PARENT_VALUE = "__root__";
 
+function compareNodesByPosition(a: NodeWithChildren, b: NodeWithChildren) {
+  if (a.position !== b.position) {
+    return a.position - b.position;
+  }
+
+  const createdAtDiff = a.createdAt.getTime() - b.createdAt.getTime();
+
+  if (createdAtDiff !== 0) {
+    return createdAtDiff;
+  }
+
+  return a.id.localeCompare(b.id);
+}
+
+function sortNodeTree(nodes: NodeWithChildren[]) {
+  nodes.sort(compareNodesByPosition);
+
+  for (const node of nodes) {
+    sortNodeTree(node.children);
+  }
+
+  return nodes;
+}
+
 function buildNodeTree(nodes: Node[]): NodeWithChildren[] {
   const nodesById = new Map<string, NodeWithChildren>();
   const roots: NodeWithChildren[] = [];
@@ -81,7 +113,7 @@ function buildNodeTree(nodes: Node[]): NodeWithChildren[] {
     }
   }
 
-  return roots;
+  return sortNodeTree(roots);
 }
 
 function NodeIcon({ node }: { node: Node }) {
@@ -139,15 +171,21 @@ function buildMoveTargetOptions(
 function NodeTreeItem({
   node,
   canEdit,
+  canMoveUp,
+  canMoveDown,
   onCreate,
   onMoveNode,
+  onReorderNode,
   onRenameNode,
   onDeleteNode,
 }: {
   node: NodeWithChildren;
   canEdit: boolean;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
   onCreate: (type: NodeType, parentId?: string) => void;
   onMoveNode: (node: NodeWithChildren) => void;
+  onReorderNode: (node: NodeWithChildren, direction: "up" | "down") => void;
   onRenameNode: (node: NodeWithChildren) => void;
   onDeleteNode: (node: NodeWithChildren) => void;
 }) {
@@ -239,6 +277,20 @@ function NodeTreeItem({
                   <ArrowLeftRightIcon />
                   Move
                 </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!canMoveUp}
+                  onSelect={() => onReorderNode(node, "up")}
+                >
+                  <ArrowUpIcon />
+                  Move up
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  disabled={!canMoveDown}
+                  onSelect={() => onReorderNode(node, "down")}
+                >
+                  <ArrowDownIcon />
+                  Move down
+                </DropdownMenuItem>
                 <DropdownMenuItem onSelect={() => onRenameNode(node)}>
                   <PencilIcon />
                   Rename
@@ -258,13 +310,16 @@ function NodeTreeItem({
         {hasChildren && (
           <CollapsibleContent>
             <SidebarMenuSub className="mr-0 ml-4 pr-0">
-              {node.children.map((child) => (
+              {node.children.map((child, index) => (
                 <NodeTreeItem
                   key={child.id}
                   node={child}
                   canEdit={canEdit}
+                  canMoveUp={index > 0}
+                  canMoveDown={index < node.children.length - 1}
                   onCreate={onCreate}
                   onMoveNode={onMoveNode}
+                  onReorderNode={onReorderNode}
                   onRenameNode={onRenameNode}
                   onDeleteNode={onDeleteNode}
                 />
@@ -385,6 +440,23 @@ export function NodeSidebar({
     });
   }
 
+  function handleReorderNode(
+    node: NodeWithChildren,
+    direction: "up" | "down",
+  ) {
+    startTransition(async () => {
+      const result = await reorderNode({
+        workspaceId,
+        nodeId: node.id,
+        direction,
+      });
+
+      if (!("error" in result)) {
+        router.refresh();
+      }
+    });
+  }
+
   function handleRenameNode(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -461,17 +533,20 @@ export function NodeSidebar({
         )}
 
         <SidebarMenu>
-          {tree.map((node) => (
+          {tree.map((node, index) => (
             <NodeTreeItem
               key={node.id}
               node={node}
               canEdit={canEdit}
+              canMoveUp={index > 0}
+              canMoveDown={index < tree.length - 1}
               onCreate={handleCreate}
               onMoveNode={(node) => {
                 setMoveError(null);
                 setMoveTargetParentId(node.parentId ?? ROOT_PARENT_VALUE);
                 setNodeToMove(node);
               }}
+              onReorderNode={handleReorderNode}
               onRenameNode={(node) => {
                 setRenameError(null);
                 setRenameTitle(node.title);

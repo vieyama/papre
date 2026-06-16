@@ -38,6 +38,12 @@ type MoveNodeInput = {
   parentId?: string | null;
 };
 
+type ReorderNodeInput = {
+  workspaceId: string;
+  nodeId: string;
+  direction: "up" | "down";
+};
+
 type RenameNodeInput = {
   workspaceId: string;
   nodeId: string;
@@ -113,6 +119,30 @@ function collectDescendantIds(
   }
 
   return descendantIds;
+}
+
+function reorderSiblingIds(
+  siblingIds: string[],
+  nodeId: string,
+  direction: ReorderNodeInput["direction"],
+) {
+  const currentIndex = siblingIds.indexOf(nodeId);
+
+  if (currentIndex === -1) return siblingIds;
+
+  const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+
+  if (nextIndex < 0 || nextIndex >= siblingIds.length) {
+    return siblingIds;
+  }
+
+  const reorderedIds = [...siblingIds];
+  [reorderedIds[currentIndex], reorderedIds[nextIndex]] = [
+    reorderedIds[nextIndex],
+    reorderedIds[currentIndex],
+  ];
+
+  return reorderedIds;
 }
 
 export async function getNodesByUserId(userId: string): Promise<Node[]> {
@@ -757,4 +787,88 @@ export async function moveNode(input: MoveNodeInput) {
   return {
     node: movedNode,
   };
+}
+
+export async function reorderNode(input: ReorderNodeInput) {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return { error: "You must be signed in to reorder a node." };
+  }
+
+  const workspace = await canEditWorkspace(userId, input.workspaceId);
+
+  if (!workspace) {
+    return { error: "You do not have permission to edit this workspace." };
+  }
+
+  if (input.direction !== "up" && input.direction !== "down") {
+    return { error: "Invalid reorder direction." };
+  }
+
+  const result = await prisma.$transaction(async (tx) => {
+    const node = await tx.node.findFirst({
+      where: {
+        id: input.nodeId,
+        workspaceId: input.workspaceId,
+        isArchived: false,
+      },
+      select: {
+        id: true,
+        parentId: true,
+      },
+    });
+
+    if (!node) {
+      return null;
+    }
+
+    const siblings = await tx.node.findMany({
+      where: {
+        workspaceId: input.workspaceId,
+        parentId: node.parentId,
+        isArchived: false,
+      },
+      orderBy: [
+        { position: "asc" },
+        { createdAt: "asc" },
+      ],
+      select: {
+        id: true,
+      },
+    });
+
+    const reorderedIds = reorderSiblingIds(
+      siblings.map((sibling) => sibling.id),
+      node.id,
+      input.direction,
+    );
+
+    await Promise.all(
+      reorderedIds.map((id, position) =>
+        tx.node.updateMany({
+          where: {
+            id,
+            workspaceId: input.workspaceId,
+            isArchived: false,
+          },
+          data: {
+            position,
+          },
+        }),
+      ),
+    );
+
+    return { success: true as const };
+  });
+
+  if (!result) {
+    return { error: "Node was not found." };
+  }
+
+  revalidatePath("/home", "layout");
+  revalidatePath("/calendar");
+
+  return result;
 }

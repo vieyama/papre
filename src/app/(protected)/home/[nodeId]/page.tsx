@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { FolderChildrenList } from "@/components/folder-children-list";
 import { NodeContentEditor } from "@/components/node-content-editor";
 import { NodeCover } from "@/components/node-cover";
+import { NodeDeleteButton } from "@/components/node-delete-button";
 import { NodeEmojiPicker } from "@/components/node-emoji-picker";
 import { NodeTitleEditor } from "@/components/node-title-editor";
 import { PageShareDialog } from "@/components/page-share-dialog";
@@ -205,11 +206,22 @@ export default async function NodePage({
             fallbackIcon={node.type === NodeType.FOLDER ? "📁" : "📄"}
             editable={canEdit}
           />
-          {node.type === NodeType.PAGE && canEdit && (
-            <PageShareDialog
-              nodeId={node.id}
-              workspaceId={node.workspaceId}
-            />
+          {canEdit && (
+            <div className="flex items-center gap-2">
+              {node.type === NodeType.PAGE && (
+                <PageShareDialog
+                  nodeId={node.id}
+                  workspaceId={node.workspaceId}
+                />
+              )}
+              <NodeDeleteButton
+                nodeId={node.id}
+                workspaceId={node.workspaceId}
+                title={title}
+                type={node.type === NodeType.FOLDER ? "folder" : "page"}
+                hasChildren={children.length > 0}
+              />
+            </div>
           )}
         </div>
         <NodeTitleEditor
