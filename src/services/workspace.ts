@@ -54,6 +54,17 @@ export type CreateWorkspaceResult = {
   success?: true;
 };
 
+export type UpdateWorkspaceResult = {
+  error?: string;
+  success?: true;
+  workspace?: Workspace;
+};
+
+export type DeleteWorkspaceResult = {
+  error?: string;
+  success?: true;
+};
+
 export async function createWorkspace(name: string, icon?: string): Promise<CreateWorkspaceResult> {
   const session = await auth();
 
@@ -81,6 +92,85 @@ export async function createWorkspace(name: string, icon?: string): Promise<Crea
   } catch (error) {
     console.error("Error creating workspace:", error);
     return { error: "Failed to create workspace. Please try again." };
+  }
+}
+
+export async function updateWorkspace(input: {
+  workspaceId: string;
+  name: string;
+  icon?: string;
+}): Promise<UpdateWorkspaceResult> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  const name = input.name.trim();
+  const icon = input.icon?.trim() || null;
+
+  if (!userId) {
+    return { error: "You must be signed in to update a workspace." };
+  }
+
+  if (!name || name.length > 100) {
+    return { error: "Workspace name must be between 1 and 100 characters." };
+  }
+
+  const access = await getWorkspaceAccess(userId, input.workspaceId);
+
+  if (
+    !access ||
+    (access.role !== WorkspaceRole.OWNER &&
+      access.role !== WorkspaceRole.ADMIN)
+  ) {
+    return { error: "You cannot edit this workspace." };
+  }
+
+  try {
+    const workspace = await prisma.workspace.update({
+      where: { id: input.workspaceId },
+      data: {
+        name,
+        icon,
+      },
+    });
+
+    revalidatePath("/home", "layout");
+    revalidatePath("/calendar");
+
+    return { success: true, workspace };
+  } catch (error) {
+    console.error("Error updating workspace:", error);
+    return { error: "Failed to update workspace. Please try again." };
+  }
+}
+
+export async function deleteWorkspace(input: {
+  workspaceId: string;
+}): Promise<DeleteWorkspaceResult> {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return { error: "You must be signed in to delete a workspace." };
+  }
+
+  const access = await getWorkspaceAccess(userId, input.workspaceId);
+
+  if (!access || access.role !== WorkspaceRole.OWNER) {
+    return { error: "Only the workspace owner can delete this workspace." };
+  }
+
+  try {
+    await prisma.workspace.delete({
+      where: { id: input.workspaceId },
+    });
+
+    revalidatePath("/", "layout");
+    revalidatePath("/home", "layout");
+    revalidatePath("/calendar");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting workspace:", error);
+    return { error: "Failed to delete workspace. Please try again." };
   }
 }
 

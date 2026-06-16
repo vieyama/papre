@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { WifiOff } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -19,12 +20,12 @@ export default function OfflinePage() {
           My Djurnal can’t load this page yet. Check your internet connection,
           then try again.
         </p>
-        <a
+        <Link
           href="/home"
           className="mt-6 inline-flex w-full items-center justify-center rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-bold text-white transition-colors hover:bg-emerald-500"
         >
           Try Again
-        </a>
+        </Link>
       </section>
     </main>
   );
