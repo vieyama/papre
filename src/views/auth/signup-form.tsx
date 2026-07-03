@@ -31,7 +31,7 @@ export function SignupForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [setError] = useState<string | null>(null)
+  const [, setError] = useState<string | null>(null)
 
   const [showPassword, setShowPassword] = useState(false)
 
