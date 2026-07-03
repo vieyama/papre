@@ -22,7 +22,7 @@ import { useState, useTransition } from "react"
 import { RegisterFormData, registerSchema } from "./authSchema"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
-import { authenticateWithEmail, registerWithEmail } from "@/services/auth"
+import { registerWithEmail } from "@/services/auth"
 import { Eye, EyeOff } from "lucide-react"
 
 export function SignupForm({
@@ -31,7 +31,7 @@ export function SignupForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [error, setError] = useState<string | null>(null)
+  const [setError] = useState<string | null>(null)
 
   const [showPassword, setShowPassword] = useState(false)
 
