@@ -3,7 +3,7 @@
 import * as React from "react"
 
 import { NavUser } from "@/components/nav-user"
-import { NodeSidebar } from "@/components/node-sidebar"
+import { NodeSidebar } from "@/components/sidebar/node-sidebar"
 import {
   Sidebar,
   SidebarContent,
@@ -14,7 +14,7 @@ import {
 import type { Session } from "next-auth"
 import type { Node } from "@/generated/prisma/browser"
 import type { WorkspaceSummary } from "@/services/workspace"
-import { WorkspaceSwitcherClient } from "./workspace-switcher-client"
+import { WorkspaceSwitcherClient } from "../workspace-switcher-client"
 import { useWorkspaceStore } from "@/stores/workspace"
 
 export function AppSidebar({
@@ -40,8 +40,8 @@ export function AppSidebar({
   } = useWorkspaceStore();
 
   const validWorkspaces = workspaces || [];
-  const initialWorkspace = validWorkspaces.length > 0 
-    ? validWorkspaces.find((w) => w.id === selectedWorkspace?.id) ?? validWorkspaces[0] 
+  const initialWorkspace = validWorkspaces.length > 0
+    ? validWorkspaces.find((w) => w.id === selectedWorkspace?.id) ?? validWorkspaces[0]
     : null;
 
   React.useEffect(() => {

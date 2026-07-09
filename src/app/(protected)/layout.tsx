@@ -3,7 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import ReactQueryProvider from "@/providers"
 import { WorkspaceProvider } from "@/providers/workspace-provider"
 import { redirect } from "next/navigation"
-import { AppSidebar } from "@/components/app-sidebar"
+import { AppSidebar } from "@/components/sidebar/app-sidebar"
 import {
   SidebarInset,
   SidebarProvider,

@@ -6,6 +6,7 @@ import { NodeDeleteButton } from "@/components/node-delete-button";
 import { NodeEmojiPicker } from "@/components/node-emoji-picker";
 import { NodeTitleEditor } from "@/components/node-title-editor";
 import { PageShareDialog } from "@/components/page-share-dialog";
+import { BackButton } from "@/components/back-button";
 import { NodeType, WorkspaceRole } from "@/generated/prisma/client";
 import { decryptUserData } from "@/lib/data-encryption";
 import prisma from "@/lib/prisma";
@@ -191,6 +192,7 @@ export default async function NodePage({
 
   return (
     <>
+      <BackButton />
       <NodeCover
         nodeId={node.id}
         workspaceId={node.workspaceId}
