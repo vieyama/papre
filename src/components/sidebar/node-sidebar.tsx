@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
+  BookHeart,
   CalendarDaysIcon,
   FilePlus2Icon,
   FolderPlusIcon,
@@ -144,6 +145,14 @@ export function NodeSidebar({
               <Link href="/home">
                 <HomeIcon />
                 <span>Beranda</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={pathname === "/book"}>
+              <Link href="/book">
+                <BookHeart />
+                <span>Book</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

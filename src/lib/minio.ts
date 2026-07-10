@@ -1,11 +1,12 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { Client } from "minio";
 import sharp from "sharp";
 
 const DEFAULT_BUCKET = "mydjournal";
 const MAX_COVER_BYTES = 10 * 1024 * 1024;
+const MAX_BOOK_PDF_BYTES = 100 * 1024 * 1024;
 const ALLOWED_COVER_TYPES = new Set([
   "image/avif",
   "image/gif",
@@ -72,6 +73,10 @@ export function getMinioCoverReference(objectKey: string) {
   return `minio://${minioBucket}/${objectKey}`;
 }
 
+export function getMinioBookPdfReference(objectKey: string) {
+  return `minio://${minioBucket}/${objectKey}`;
+}
+
 export async function optimizeAndStoreCover(file: File) {
   if (!ALLOWED_COVER_TYPES.has(file.type)) {
     throw new Error("Unsupported image format.");
@@ -132,5 +137,41 @@ export async function optimizeAndStoreCover(file: File) {
   return {
     objectKey,
     reference: getMinioCoverReference(objectKey),
+  };
+}
+
+export async function storeBookPdf(file: File) {
+  const fileName = file.name.trim();
+  const isPdf =
+    file.type === "application/pdf" ||
+    fileName.toLowerCase().endsWith(".pdf");
+
+  if (!isPdf) {
+    throw new Error("Only PDF files can be imported.");
+  }
+
+  if (file.size === 0 || file.size > MAX_BOOK_PDF_BYTES) {
+    throw new Error("PDF file must be between 1 byte and 100 MB.");
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const objectKey = `books/${randomUUID()}.pdf`;
+
+  await ensureMinioBucket();
+  
+  await minioClient.putObject(
+    minioBucket,
+    objectKey,
+    buffer,
+    buffer.byteLength,
+    {
+      "Content-Type": "application/pdf",
+      "Cache-Control": "private, max-age=3600",
+    },
+  );
+
+  return {
+    objectKey,
+    reference: getMinioBookPdfReference(objectKey),
   };
 }
