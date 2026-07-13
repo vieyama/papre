@@ -8,7 +8,6 @@ trigger:
   event:
     - push
 
-
 steps:
   # ─────────────────────────────────────────
   # 1. Write .env file from secrets
@@ -109,124 +108,124 @@ volumes:
 kind: secret
 name: POSTGRES_USER
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: POSTGRES_USER
 
 ---
 kind: secret
 name: POSTGRES_PASSWORD
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: POSTGRES_PASSWORD
 
 ---
 kind: secret
 name: POSTGRES_DB
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: POSTGRES_DB
 
 ---
 kind: secret
 name: AUTH_SECRET
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: AUTH_SECRET
 
 ---
 kind: secret
 name: AUTH_URL
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: AUTH_URL
 
 ---
 kind: secret
 name: GOOGLE_CLIENT_ID
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: GOOGLE_CLIENT_ID
 
 ---
 kind: secret
 name: GOOGLE_CLIENT_SECRET
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: GOOGLE_CLIENT_SECRET
 
 ---
 kind: secret
 name: APP_PORT
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: APP_PORT
 
 ---
 kind: secret
 name: DATA_ENCRYPTION_MASTER_KEY
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: DATA_ENCRYPTION_MASTER_KEY
 
 ---
 kind: secret
 name: MINIO_ACCESS_KEY
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: MINIO_ACCESS_KEY
 
 ---
 kind: secret
 name: MINIO_SECRET_KEY
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: MINIO_SECRET_KEY
 
 ---
 kind: secret
 name: MINIO_BUCKET
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: MINIO_BUCKET
 
 ---
 kind: secret
 name: SMTP_HOST
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: SMTP_HOST
 
 ---
 kind: secret
 name: SMTP_PORT
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: SMTP_PORT
 
 ---
 kind: secret
 name: SMTP_FROM_ADDRESS
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: SMTP_FROM_ADDRESS
 
 ---
 kind: secret
 name: SMTP_FROM_NAME
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: SMTP_FROM_NAME
 
 ---
 kind: secret
 name: SMTP_USERNAME
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: SMTP_USERNAME
 
 ---
 kind: secret
 name: SMTP_PASSWORD
 get:
-  path: v1/drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/my-djurnal-next
   name: SMTP_PASSWORD
