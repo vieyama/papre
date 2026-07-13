@@ -8,6 +8,7 @@ trigger:
   event:
     - push
 
+
 steps:
   # ─────────────────────────────────────────
   # 1. Write .env file from secrets
