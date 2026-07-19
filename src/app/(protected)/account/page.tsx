@@ -22,7 +22,7 @@ import { AccountProfileForm } from "@/views/account/account-profile-form";
 
 export const metadata: Metadata = {
   title: "Account",
-  description: "Manage your profile and sign-in information in My Djurnal.",
+  description: "Manage your profile and sign-in information in Papre.",
 }
 
 function getInitials(name: string | null, email: string) {

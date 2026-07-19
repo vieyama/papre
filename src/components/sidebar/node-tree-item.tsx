@@ -1,3 +1,4 @@
+import * as React from "react";
 import { NodeType } from "@/generated/prisma/enums";
 import { NodeWithChildren } from "./type";
 import { usePathname } from "next/navigation";
@@ -6,6 +7,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/colla
 import { ChevronRightIcon, FilePlus2Icon, MoreHorizontalIcon, FolderPlusIcon, ArrowLeftRightIcon, ArrowUpIcon, ArrowDownIcon, PencilIcon, Trash2Icon } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../ui/dropdown-menu";
 import { NodeIcon } from "./node-icon";
+import { cn } from "@/lib/utils";
 import Link from "next/link";
 
 export function NodeTreeItem({
@@ -33,6 +35,7 @@ export function NodeTreeItem({
     const { isMobile, setOpenMobile } = useSidebar();
     const hasChildren = node.children.length > 0;
     const isActive = pathname === `/home/${node.id}`;
+    const [isOpen, setIsOpen] = React.useState(hasChildren);
 
     function handleNavigate() {
         if (isMobile) {
@@ -42,10 +45,9 @@ export function NodeTreeItem({
 
     return (
         <Collapsible
-            key={`${node.id}:${node.children.length}`}
             asChild
-            defaultOpen={hasChildren}
-            className="group/node-collapsible"
+            open={isOpen}
+            onOpenChange={setIsOpen}
         >
             <SidebarMenuItem>
                 <div className="flex items-center">
@@ -56,7 +58,12 @@ export function NodeTreeItem({
                                 className="ml-1 flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-sidebar-accent"
                                 aria-label={`Toggle ${node.title}`}
                             >
-                                <ChevronRightIcon className="size-3.5 transition-transform group-data-[state=open]/node-collapsible:rotate-90" />
+                                <ChevronRightIcon
+                                    className={cn(
+                                        "size-3.5 transition-transform",
+                                        isOpen && "rotate-90",
+                                    )}
+                                />
                             </button>
                         </CollapsibleTrigger>
                     ) : (

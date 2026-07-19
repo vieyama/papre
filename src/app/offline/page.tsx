@@ -17,7 +17,7 @@ export default function OfflinePage() {
           Connection lost
         </h1>
         <p className="mt-2 text-sm leading-6 text-slate-500">
-          My Djurnal can’t load this page yet. Check your internet connection,
+          Papre can’t load this page yet. Check your internet connection,
           then try again.
         </p>
         <Link

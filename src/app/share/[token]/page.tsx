@@ -18,7 +18,7 @@ export async function generateMetadata({
   if (result.status !== "ok") {
     return {
       title: "Shared page",
-      description: "View a page shared through My Djurnal.",
+      description: "View a page shared through Papre.",
       referrer: "no-referrer",
       robots: {
         index: false,
@@ -28,7 +28,7 @@ export async function generateMetadata({
     };
   }
 
-  const description = `Shared page from ${result.page.workspaceName} in My Djurnal.`;
+  const description = `Shared page from ${result.page.workspaceName} in Papre.`;
 
   return {
     title: result.page.title,

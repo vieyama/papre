@@ -16,6 +16,7 @@ import {
   createNode,
   reorderNode,
 } from "@/services/node";
+import { isBookCollectionNode } from "@/lib/book-node";
 
 import {
   SidebarGroup,
@@ -55,6 +56,32 @@ function sortNodeTree(nodes: NodeWithChildren[]) {
   }
 
   return nodes;
+}
+
+function excludeBookNodes(nodes: Node[]): Node[] {
+  const nodesById = new Map(nodes.map((node) => [node.id, node]));
+  const bookNodeIds = new Set<string>();
+
+  for (const node of nodes) {
+    if (isBookCollectionNode(node)) {
+      bookNodeIds.add(node.id);
+    }
+  }
+
+  for (const node of nodes) {
+    let current = node.parentId ? nodesById.get(node.parentId) : undefined;
+
+    while (current) {
+      if (bookNodeIds.has(current.id)) {
+        bookNodeIds.add(node.id);
+        break;
+      }
+
+      current = current.parentId ? nodesById.get(current.parentId) : undefined;
+    }
+  }
+
+  return nodes.filter((node) => !bookNodeIds.has(node.id));
 }
 
 function buildNodeTree(nodes: Node[]): NodeWithChildren[] {
@@ -105,7 +132,10 @@ export function NodeSidebar({
   const [nodeToDelete, setNodeToDelete] =
     React.useState<NodeWithChildren | null>(null);
   const [deleteError, setDeleteError] = React.useState<string | null>(null);
-  const tree = React.useMemo(() => buildNodeTree(nodes), [nodes]);
+  const tree = React.useMemo(
+    () => buildNodeTree(excludeBookNodes(nodes)),
+    [nodes],
+  );
 
 
   function handleCreate(type: NodeType, parentId?: string) {

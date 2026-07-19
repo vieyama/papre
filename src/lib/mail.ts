@@ -8,7 +8,7 @@ function getSmtpConfig() {
   const user = process.env.SMTP_USERNAME;
   const pass = process.env.SMTP_PASSWORD;
   const fromAddress = process.env.SMTP_FROM_ADDRESS;
-  const fromName = process.env.SMTP_FROM_NAME || "MyDJournal";
+  const fromName = process.env.SMTP_FROM_NAME || "Papre";
 
   if (!host || !Number.isInteger(port) || !user || !pass || !fromAddress) {
     throw new Error("SMTP configuration is incomplete");
@@ -36,16 +36,16 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
       address: config.fromAddress,
     },
     to: email,
-    subject: "Reset password MyDJournal",
+    subject: "Reset password Papre",
     text: [
-      "Kami menerima permintaan untuk mereset password akun MyDJournal Anda.",
+      "Kami menerima permintaan untuk mereset password akun Papre Anda.",
       "",
       `Buka tautan berikut untuk membuat password baru: ${resetUrl}`,
       "",
       "Tautan ini berlaku selama 1 jam. Abaikan email ini jika Anda tidak meminta reset password.",
     ].join("\n"),
     html: `
-      <p>Kami menerima permintaan untuk mereset password akun MyDJournal Anda.</p>
+      <p>Kami menerima permintaan untuk mereset password akun Papre Anda.</p>
       <p><a href="${htmlResetUrl}">Buat password baru</a></p>
       <p>Tautan ini berlaku selama 1 jam. Abaikan email ini jika Anda tidak meminta reset password.</p>
     `,

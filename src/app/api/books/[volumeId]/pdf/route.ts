@@ -71,9 +71,9 @@ export async function GET(
     return new Response("PDF not found", { status: 404 });
   }
 
-  await ensureMinioBucket();
-
   try {
+    await ensureMinioBucket();
+
     const [stat, objectStream] = await Promise.all([
       minioClient.statObject(minioBucket, objectKey),
       minioClient.getObject(minioBucket, objectKey),

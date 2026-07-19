@@ -17,7 +17,7 @@ import {
 
 export const metadata: Metadata = {
   title: "Dashboard",
-  description: "Overview widgets and workspace navigation for My Djurnal.",
+  description: "Overview widgets and workspace navigation for Papre.",
   robots: {
     index: false,
     follow: false,

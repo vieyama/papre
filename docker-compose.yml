@@ -1,9 +1,9 @@
-name: ${COMPOSE_PROJECT_NAME:-mydjurnal}
+name: ${COMPOSE_PROJECT_NAME:-papre}
 
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: ${COMPOSE_PROJECT_NAME:-mydjurnal}_postgres
+    container_name: ${COMPOSE_PROJECT_NAME:-papre}_postgres
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
@@ -20,7 +20,7 @@ services:
       retries: 5
 
   migrate:
-    container_name: ${COMPOSE_PROJECT_NAME:-mydjurnal}_migrate
+    container_name: ${COMPOSE_PROJECT_NAME:-papre}_migrate
     build:
       context: .
       dockerfile: Dockerfile
@@ -34,7 +34,7 @@ services:
     restart: on-failure
 
   minio:
-    container_name: ${COMPOSE_PROJECT_NAME:-mydjurnal}_minio
+    container_name: ${COMPOSE_PROJECT_NAME:-papre}_minio
     image: minio/minio:RELEASE.2025-07-23T15-54-02Z
     command: server /data --console-address ":9001"
     restart: unless-stopped
@@ -59,7 +59,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: ${COMPOSE_PROJECT_NAME:-mydjurnal}_app
+    container_name: ${COMPOSE_PROJECT_NAME:-papre}_app
     restart: unless-stopped
     ports:
       - "${APP_BIND_ADDRESS:-0.0.0.0}:${APP_PORT:-3010}:5002"
@@ -75,11 +75,11 @@ services:
       MINIO_USE_SSL: "false"
       MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
       MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
-      MINIO_BUCKET: ${MINIO_BUCKET:-mydjurnal}
+      MINIO_BUCKET: ${MINIO_BUCKET:-papre}
       SMTP_HOST: ${SMTP_HOST:?SMTP_HOST is required}
       SMTP_PORT: ${SMTP_PORT:?SMTP_PORT is required}
       SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:?SMTP_FROM_ADDRESS is required}
-      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-MyDJournal}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-Papre}
       SMTP_USERNAME: ${SMTP_USERNAME:?SMTP_USERNAME is required}
       SMTP_PASSWORD: ${SMTP_PASSWORD:?SMTP_PASSWORD is required}
       NODE_ENV: production

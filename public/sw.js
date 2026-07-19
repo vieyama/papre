@@ -1,4 +1,4 @@
-const CACHE_PREFIX = "my-djurnal";
+const CACHE_PREFIX = "papre";
 const STATIC_CACHE = `${CACHE_PREFIX}-static-v1`;
 const OFFLINE_URL = "/offline";
 const PRECACHE_URLS = [

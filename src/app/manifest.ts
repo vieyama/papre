@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "My Djurnal",
-    short_name: "Djurnal",
+    name: "Papre",
+    short_name: "Papre",
     description: "Create, organize, and share notes, pages, and folders.",
     start_url: "/home",
     scope: "/",

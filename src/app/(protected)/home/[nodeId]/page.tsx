@@ -85,8 +85,8 @@ export async function generateMetadata({
     title: node.title,
     description:
       node.type === NodeType.FOLDER
-        ? `Browse pages inside ${node.title} in My Djurnal.`
-        : `Read and edit ${node.title} in My Djurnal.`,
+        ? `Browse pages inside ${node.title} in Papre.`
+        : `Read and edit ${node.title} in Papre.`,
     robots: {
       index: false,
       follow: false,
@@ -174,6 +174,8 @@ export default async function NodePage({
         ),
         type: child.type,
         icon: child.icon,
+        coverImage: child.coverImage,
+        updatedAt: child.updatedAt.toISOString(),
       })),
     ),
   ]);
@@ -192,14 +194,16 @@ export default async function NodePage({
 
   return (
     <>
-      <BackButton />
+      <div className="mx-auto w-full max-w-5xl px-6 pt-4 md:px-8">
+        <BackButton />
+      </div>
       <NodeCover
         nodeId={node.id}
         workspaceId={node.workspaceId}
         initialCoverImage={coverImage ?? null}
         editable={canEdit}
       />
-      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 sm:px-8 py-4">
+      <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col px-6 py-8 md:px-8">
         <div className="flex w-full items-center justify-between">
           <NodeEmojiPicker
             nodeId={node.id}

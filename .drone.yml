@@ -76,14 +76,9 @@ steps:
         SMTP_FROM_NAME=$${SMTP_FROM_NAME}
         SMTP_USERNAME=$${SMTP_USERNAME}
         SMTP_PASSWORD=$${SMTP_PASSWORD}
-        COMPOSE_PROJECT_NAME=mydjurnal
+        COMPOSE_PROJECT_NAME=papre
         EOF
 
-  - name: debug-env
-    image: alpine
-    commands:
-      - cat /drone/src/.env
-  
   # ─────────────────────────────────────────
   # 2. Deploy via Docker Compose
   # ─────────────────────────────────────────
@@ -108,124 +103,124 @@ volumes:
 kind: secret
 name: POSTGRES_USER
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: POSTGRES_USER
 
 ---
 kind: secret
 name: POSTGRES_PASSWORD
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: POSTGRES_PASSWORD
 
 ---
 kind: secret
 name: POSTGRES_DB
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: POSTGRES_DB
 
 ---
 kind: secret
 name: AUTH_SECRET
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: AUTH_SECRET
 
 ---
 kind: secret
 name: AUTH_URL
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: AUTH_URL
 
 ---
 kind: secret
 name: GOOGLE_CLIENT_ID
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: GOOGLE_CLIENT_ID
 
 ---
 kind: secret
 name: GOOGLE_CLIENT_SECRET
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: GOOGLE_CLIENT_SECRET
 
 ---
 kind: secret
 name: APP_PORT
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: APP_PORT
 
 ---
 kind: secret
 name: DATA_ENCRYPTION_MASTER_KEY
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: DATA_ENCRYPTION_MASTER_KEY
 
 ---
 kind: secret
 name: MINIO_ACCESS_KEY
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: MINIO_ACCESS_KEY
 
 ---
 kind: secret
 name: MINIO_SECRET_KEY
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: MINIO_SECRET_KEY
 
 ---
 kind: secret
 name: MINIO_BUCKET
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: MINIO_BUCKET
 
 ---
 kind: secret
 name: SMTP_HOST
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: SMTP_HOST
 
 ---
 kind: secret
 name: SMTP_PORT
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: SMTP_PORT
 
 ---
 kind: secret
 name: SMTP_FROM_ADDRESS
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: SMTP_FROM_ADDRESS
 
 ---
 kind: secret
 name: SMTP_FROM_NAME
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: SMTP_FROM_NAME
 
 ---
 kind: secret
 name: SMTP_USERNAME
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: SMTP_USERNAME
 
 ---
 kind: secret
 name: SMTP_PASSWORD
 get:
-  path: drone/data/vieyama/my-djurnal-next
+  path: drone/data/vieyama/papre
   name: SMTP_PASSWORD

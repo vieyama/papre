@@ -12,6 +12,7 @@ import {
 
 import { createBookCollection, type BookCollectionSummary } from "@/services/book";
 import { WorkspaceRole } from "@/generated/prisma/browser";
+import { useWorkspaceStore } from "@/stores/workspace";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -24,10 +25,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  NativeSelect,
-  NativeSelectOption,
-} from "@/components/ui/native-select";
+import { formatShortDate } from "@/lib/format-date";
 
 type BookWorkspace = {
   id: string;
@@ -35,14 +33,6 @@ type BookWorkspace = {
   icon: string | null;
   currentUserRole: WorkspaceRole;
 };
-
-function formatUpdatedAt(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(value));
-}
 
 export function BookLibrary({
   workspaces,
@@ -52,13 +42,19 @@ export function BookLibrary({
   collections: BookCollectionSummary[];
 }) {
   const router = useRouter();
-  const editableWorkspaces = workspaces.filter(
-    (workspace) => workspace.currentUserRole !== WorkspaceRole.VIEWER,
+  const { selectedWorkspace, hasHydrated } = useWorkspaceStore();
+  const activeWorkspace =
+    workspaces.find((workspace) => workspace.id === selectedWorkspace?.id) ??
+    workspaces[0];
+  const activeWorkspaceId = activeWorkspace?.id;
+  const canCreate = activeWorkspace?.currentUserRole !== WorkspaceRole.VIEWER;
+
+  const workspaceCollections = React.useMemo(
+    () => collections.filter((collection) => collection.workspaceId === activeWorkspaceId),
+    [collections, activeWorkspaceId],
   );
+
   const [open, setOpen] = React.useState(false);
-  const [workspaceId, setWorkspaceId] = React.useState(
-    editableWorkspaces[0]?.id ?? "",
-  );
   const [title, setTitle] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
   const [isPending, startTransition] = React.useTransition();
@@ -67,9 +63,11 @@ export function BookLibrary({
     event.preventDefault();
     setError(null);
 
+    if (!activeWorkspaceId) return;
+
     startTransition(async () => {
       const result = await createBookCollection({
-        workspaceId,
+        workspaceId: activeWorkspaceId,
         title,
       });
 
@@ -83,6 +81,14 @@ export function BookLibrary({
       router.push(`/book/${result.collection?.id}`);
       router.refresh();
     });
+  }
+
+  if (!hasHydrated) {
+    return (
+      <div className="mx-auto w-full max-w-6xl px-6 py-8 md:px-10 md:py-12">
+        <div className="h-40 animate-pulse rounded-2xl bg-muted" />
+      </div>
+    );
   }
 
   return (
@@ -101,7 +107,7 @@ export function BookLibrary({
           </p>
         </div>
 
-        {editableWorkspaces.length > 0 && (
+        {canCreate && (
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -120,27 +126,6 @@ export function BookLibrary({
                 </DialogHeader>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="book-workspace">Workspace</Label>
-                  <NativeSelect
-                    id="book-workspace"
-                    className="w-full"
-                    value={workspaceId}
-                    onChange={(event) => setWorkspaceId(event.target.value)}
-                    required
-                  >
-                    {editableWorkspaces.map((workspace) => (
-                      <NativeSelectOption
-                        key={workspace.id}
-                        value={workspace.id}
-                      >
-                        {workspace.icon ? `${workspace.icon} ` : ""}
-                        {workspace.name}
-                      </NativeSelectOption>
-                    ))}
-                  </NativeSelect>
-                </div>
-
-                <div className="grid gap-2">
                   <Label htmlFor="book-title">Collection name</Label>
                   <Input
                     id="book-title"
@@ -155,7 +140,7 @@ export function BookLibrary({
                 {error && <p className="text-sm text-destructive">{error}</p>}
 
                 <DialogFooter>
-                  <Button type="submit" disabled={isPending || !workspaceId}>
+                  <Button type="submit" disabled={isPending || !activeWorkspaceId}>
                     {isPending ? "Creating..." : "Create collection"}
                   </Button>
                 </DialogFooter>
@@ -166,9 +151,9 @@ export function BookLibrary({
       </section>
 
       <section className="mt-8">
-        {collections.length > 0 ? (
+        {workspaceCollections.length > 0 ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {collections.map((collection) => (
+            {workspaceCollections.map((collection) => (
               <Link
                 key={collection.id}
                 href={`/book/${collection.id}`}
@@ -190,7 +175,7 @@ export function BookLibrary({
                 </div>
                 <div className="mt-5 flex items-center justify-between text-xs text-muted-foreground">
                   <span>{collection.volumeCount} volumes</span>
-                  <span>{formatUpdatedAt(collection.updatedAt)}</span>
+                  <span>{formatShortDate(collection.updatedAt)}</span>
                 </div>
               </Link>
             ))}

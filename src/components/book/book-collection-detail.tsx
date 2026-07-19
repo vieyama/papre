@@ -50,15 +50,15 @@ type BookCollection = {
 
 type DeleteTarget =
   | {
-      type: "collection";
-      id: string;
-      title: string;
-    }
+    type: "collection";
+    id: string;
+    title: string;
+  }
   | {
-      type: "volume";
-      id: string;
-      title: string;
-    };
+    type: "volume";
+    id: string;
+    title: string;
+  };
 
 function formatUpdatedAt(value: string) {
   return new Intl.DateTimeFormat("id-ID", {
@@ -96,14 +96,15 @@ export function BookCollectionDetail({
         title: manualTitle,
       });
 
-      if (result.error) {
-        setError(result.error);
+      if (result.error || !result.volume?.id) {
+        const message = result.error ?? "Failed to create volume. Please try again.";
+        setError(message);
         return;
       }
 
       setManualTitle("");
       setOpen(false);
-      router.push(`/book/${collection.id}/${result.volume?.id}?mode=create`);
+      router.push(`/book/${collection.id}/${result.volume.id}?mode=create`);
       router.refresh();
     });
   }
@@ -119,15 +120,16 @@ export function BookCollectionDetail({
 
     startTransition(async () => {
       const result = await importBookPdf(formData);
-
-      if (result.error) {
-        setError(result.error);
+      if (result.error || !result.volume?.id) {
+        console.error(result.error)
+        const message = result.error || "Failed to import PDF. Please try again.";
+        setError(message);
         return;
       }
 
       setPdfTitle("");
       setOpen(false);
-      router.push(`/book/${collection.id}/${result.volume?.id}`);
+      router.push(`/book/${collection.id}/${result.volume.id}`);
       router.refresh();
     });
   }
@@ -141,14 +143,14 @@ export function BookCollectionDetail({
       const result =
         deleteTarget.type === "collection"
           ? await deleteBookCollection({
-              workspaceId: collection.workspaceId,
-              collectionId: collection.id,
-            })
+            workspaceId: collection.workspaceId,
+            collectionId: collection.id,
+          })
           : await deleteBookVolume({
-              workspaceId: collection.workspaceId,
-              collectionId: collection.id,
-              volumeId: deleteTarget.id,
-            });
+            workspaceId: collection.workspaceId,
+            collectionId: collection.id,
+            volumeId: deleteTarget.id,
+          });
 
       if (result.error) {
         setDeleteError(result.error);
@@ -211,91 +213,91 @@ export function BookCollectionDetail({
                   Add volume
                 </Button>
               </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add volume</DialogTitle>
-                <DialogDescription>
-                  Import a PDF book or start writing a volume with the editor.
-                </DialogDescription>
-              </DialogHeader>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add volume</DialogTitle>
+                  <DialogDescription>
+                    Import a PDF book or start writing a volume with the editor.
+                  </DialogDescription>
+                </DialogHeader>
 
-              <Tabs defaultValue="pdf">
-                <TabsList className="w-full">
-                  <TabsTrigger value="pdf" className="w-full">
-                    <UploadIcon />
-                    PDF
-                  </TabsTrigger>
-                  <TabsTrigger value="manual" className="w-full">
-                    <FileTextIcon />
-                    Write
-                  </TabsTrigger>
-                </TabsList>
+                <Tabs defaultValue="pdf">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="pdf" className="w-full">
+                      <UploadIcon />
+                      PDF
+                    </TabsTrigger>
+                    <TabsTrigger value="manual" className="w-full">
+                      <FileTextIcon />
+                      Write
+                    </TabsTrigger>
+                  </TabsList>
 
-                <TabsContent value="pdf">
-                  <form onSubmit={handleImportPdf} className="mt-4 grid gap-4">
-                    <div className="grid gap-2">
-                      <Label htmlFor="pdf-title">Volume title</Label>
-                      <Input
-                        id="pdf-title"
-                        name="title"
-                        value={pdfTitle}
-                        onChange={(event) => setPdfTitle(event.target.value)}
-                        placeholder="Volume 1"
-                        maxLength={100}
-                        required
-                      />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="pdf-file">PDF file</Label>
-                      <Input
-                        id="pdf-file"
-                        name="file"
-                        type="file"
-                        accept="application/pdf,.pdf"
-                        required
-                      />
-                    </div>
-                    {error && (
-                      <p className="text-sm text-destructive">{error}</p>
-                    )}
-                    <DialogFooter>
-                      <Button type="submit" disabled={isPending}>
-                        {isPending ? "Importing..." : "Import PDF"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </TabsContent>
+                  <TabsContent value="pdf">
+                    <form onSubmit={handleImportPdf} className="mt-4 grid gap-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="pdf-title">Volume title</Label>
+                        <Input
+                          id="pdf-title"
+                          name="title"
+                          value={pdfTitle}
+                          onChange={(event) => setPdfTitle(event.target.value)}
+                          placeholder="Volume 1"
+                          maxLength={100}
+                          required
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="pdf-file">PDF file</Label>
+                        <Input
+                          id="pdf-file"
+                          name="file"
+                          type="file"
+                          accept="application/pdf,.pdf"
+                          required
+                        />
+                      </div>
+                      {error && (
+                        <p className="text-sm text-destructive">{error}</p>
+                      )}
+                      <DialogFooter>
+                        <Button type="submit" disabled={isPending}>
+                          {isPending ? "Importing..." : "Import PDF"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </TabsContent>
 
-                <TabsContent value="manual">
-                  <form
-                    onSubmit={handleCreateManual}
-                    className="mt-4 grid gap-4"
-                  >
-                    <div className="grid gap-2">
-                      <Label htmlFor="manual-title">Volume title</Label>
-                      <Input
-                        id="manual-title"
-                        value={manualTitle}
-                        onChange={(event) =>
-                          setManualTitle(event.target.value)
-                        }
-                        placeholder="Volume 1"
-                        maxLength={100}
-                        required
-                      />
-                    </div>
-                    {error && (
-                      <p className="text-sm text-destructive">{error}</p>
-                    )}
-                    <DialogFooter>
-                      <Button type="submit" disabled={isPending}>
-                        {isPending ? "Creating..." : "Start writing"}
-                      </Button>
-                    </DialogFooter>
-                  </form>
-                </TabsContent>
-              </Tabs>
-            </DialogContent>
+                  <TabsContent value="manual">
+                    <form
+                      onSubmit={handleCreateManual}
+                      className="mt-4 grid gap-4"
+                    >
+                      <div className="grid gap-2">
+                        <Label htmlFor="manual-title">Volume title</Label>
+                        <Input
+                          id="manual-title"
+                          value={manualTitle}
+                          onChange={(event) =>
+                            setManualTitle(event.target.value)
+                          }
+                          placeholder="Volume 1"
+                          maxLength={100}
+                          required
+                        />
+                      </div>
+                      {error && (
+                        <p className="text-sm text-destructive">{error}</p>
+                      )}
+                      <DialogFooter>
+                        <Button type="submit" disabled={isPending}>
+                          {isPending ? "Creating..." : "Start writing"}
+                        </Button>
+                      </DialogFooter>
+                    </form>
+                  </TabsContent>
+                </Tabs>
+              </DialogContent>
             </Dialog>
           </div>
         )}
@@ -381,7 +383,7 @@ export function BookCollectionDetail({
             <DialogDescription>
               &quot;{deleteTarget?.title}&quot;
               {deleteTarget?.type === "collection" &&
-              collection.volumes.length > 0
+                collection.volumes.length > 0
                 ? " and all volumes inside it"
                 : ""}{" "}
               will be removed from Book.

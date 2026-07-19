@@ -67,6 +67,7 @@ model VerificationToken {
 enum NodeType {
   FOLDER
   PAGE
+  BOOK
 }
 
 enum WorkspaceRole {

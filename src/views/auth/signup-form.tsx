@@ -3,13 +3,6 @@
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
   Field,
   FieldDescription,
   FieldGroup,
@@ -31,7 +24,7 @@ export function SignupForm({
 }: React.ComponentProps<"div">) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
-  const [, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   const [showPassword, setShowPassword] = useState(false)
 
@@ -68,91 +61,95 @@ export function SignupForm({
 
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-xl">Create your account</CardTitle>
-          <CardDescription>
-            Enter your email below to create your account
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit(handleAuth)}>
-            <FieldGroup className="gap-2!">
-              <Field>
-                <FieldLabel htmlFor="name">Full Name</FieldLabel>
-                <Input id="name" type="text" placeholder="John Doe" {...register('name')} />
-                {errors.name && (
-                  <p className="text-rose-500 text-[10px] font-bold uppercase tracking-wider ml-1">{errors.name.message}</p>
-                )}
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="email">Email</FieldLabel>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="m@example.com"
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Enter your email below to create your account
+        </p>
+      </div>
 
-                  {...register('email')}
-                />
-                {errors.email && (
-                  <p className="text-rose-500 text-[10px] font-bold uppercase tracking-wider ml-1">{errors.email.message}</p>
-                )}
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="password">Password</FieldLabel>
-                <div className="relative group">
-                  <Input
-                    {...register('password')}
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+      {error && (
+        <p className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </p>
+      )}
 
-                    className="w-full"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1.5 text-slate-400 transition-colors p-0.5"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                {errors.password && (
-                  <p className="text-rose-500 text-[10px] font-bold uppercase tracking-wider ml-1">{errors.password.message}</p>
-                )}
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
-                <div className="relative group">
-                  <Input
-                    {...register('confirmPassword')}
-                    type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
-
-                    className="w-full"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1.5 text-slate-400 transition-colors p-0.5"
-                  >
-                    {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                  </button>
-                </div>
-                {errors.confirmPassword && (
-                  <p className="text-rose-500 text-[10px] font-bold uppercase tracking-wider ml-1">{errors.confirmPassword.message}</p>
-                )}
-              </Field>
-              <Field>
-                <Button type="submit" disabled={isPending}>{isPending ? 'Signing up' : 'Create Account'}</Button>
-                <FieldDescription className="text-center">
-                  Already have an account? <Link href="/login">Sign in</Link>
-                </FieldDescription>
-              </Field>
-            </FieldGroup>
-          </form>
-        </CardContent>
-      </Card>
-      <FieldDescription className="px-6 text-center">
+      <form onSubmit={handleSubmit(handleAuth)}>
+        <FieldGroup className="gap-4">
+          <Field>
+            <FieldLabel htmlFor="name">Full Name</FieldLabel>
+            <Input id="name" type="text" placeholder="John Doe" {...register('name')} />
+            {errors.name && (
+              <p className="ml-1 text-xs text-destructive">{errors.name.message}</p>
+            )}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <Input
+              id="email"
+              type="email"
+              placeholder="m@example.com"
+              {...register('email')}
+            />
+            {errors.email && (
+              <p className="ml-1 text-xs text-destructive">{errors.email.message}</p>
+            )}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <div className="relative">
+              <Input
+                {...register('password')}
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                className="w-full"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            {errors.password && (
+              <p className="ml-1 text-xs text-destructive">{errors.password.message}</p>
+            )}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
+            <div className="relative">
+              <Input
+                {...register('confirmPassword')}
+                id="confirm-password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="••••••••"
+                className="w-full"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+            {errors.confirmPassword && (
+              <p className="ml-1 text-xs text-destructive">{errors.confirmPassword.message}</p>
+            )}
+          </Field>
+          <Field>
+            <Button type="submit" disabled={isPending}>{isPending ? 'Signing up' : 'Create Account'}</Button>
+            <FieldDescription className="text-center">
+              Already have an account? <Link href="/login">Sign in</Link>
+            </FieldDescription>
+          </Field>
+        </FieldGroup>
+      </form>
+      <FieldDescription className="text-center">
         By clicking continue, you agree to our <Link href="/terms">Terms of Service</Link>{" "}
         and <Link href="/privacy">Privacy Policy</Link>.
       </FieldDescription>

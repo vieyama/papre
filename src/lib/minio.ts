@@ -4,7 +4,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { Client } from "minio";
 import sharp from "sharp";
 
-const DEFAULT_BUCKET = "mydjournal";
+const DEFAULT_BUCKET = "papre";
 const MAX_COVER_BYTES = 10 * 1024 * 1024;
 const MAX_BOOK_PDF_BYTES = 100 * 1024 * 1024;
 const ALLOWED_COVER_TYPES = new Set([
@@ -55,7 +55,13 @@ async function ensureBucket() {
 }
 
 export function ensureMinioBucket() {
-  globalForMinio.minioBucketReady ??= ensureBucket();
+  if (!globalForMinio.minioBucketReady) {
+    globalForMinio.minioBucketReady = ensureBucket().catch((error) => {
+      globalForMinio.minioBucketReady = undefined;
+      throw error;
+    });
+  }
+
   return globalForMinio.minioBucketReady;
 }
 

@@ -8,7 +8,7 @@ import { getWorkspacesByUserId } from "@/services/workspace";
 
 export const metadata: Metadata = {
   title: "Home",
-  description: "Browse all pages and folders in your My Djurnal workspaces.",
+  description: "Browse all pages and folders in your Papre workspaces.",
 }
 
 export default async function HomePage() {

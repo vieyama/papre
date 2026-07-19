@@ -1,21 +1,16 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FilePlus2Icon, FolderPlusIcon } from "lucide-react";
 
 import { NodeType } from "@/generated/prisma/browser";
 import { createNode } from "@/services/node";
 import { Button } from "@/components/ui/button";
-
-type FolderChild = {
-  id: string;
-  title: string;
-  type: NodeType;
-  icon: string | null;
-};
+import {
+  NodeCollectionView,
+  type NodeCollectionItem,
+} from "@/components/node-collection-view";
 
 export function FolderChildrenList({
   folderId,
@@ -25,7 +20,7 @@ export function FolderChildrenList({
 }: {
   folderId: string;
   workspaceId: string;
-  nodes: FolderChild[];
+  nodes: NodeCollectionItem[];
   editable?: boolean;
 }) {
   const router = useRouter();
@@ -50,80 +45,59 @@ export function FolderChildrenList({
   });
 
   return (
-    <section className="mt-8">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <h2 className="text-sm font-medium text-muted-foreground">
-          Inside this folder
-        </h2>
-        {editable && <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={createMutation.isPending}
-            onClick={() => createMutation.mutate(NodeType.FOLDER)}
-          >
-            <FolderPlusIcon />
-            New folder
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={createMutation.isPending}
-            onClick={() => createMutation.mutate(NodeType.PAGE)}
-          >
-            <FilePlus2Icon />
-            New page
-          </Button>
-        </div>}
-      </div>
-
+    <div className="mt-10">
       {createMutation.error && (
         <p className="mb-3 text-sm text-destructive">
           {createMutation.error.message}
         </p>
       )}
 
-      {nodes.length > 0 ? (
-        <div className="grid gap-2 sm:grid-cols-2">
-          {nodes.map((child) => (
-            <Link
-              key={child.id}
-              href={`/home/${child.id}`}
-              className="flex min-w-0 items-center gap-3 rounded-lg border bg-card px-3 py-3 transition-colors hover:bg-muted"
+      <NodeCollectionView
+        items={nodes}
+        getHref={(item) => `/home/${item.id}`}
+        title="Inside this folder"
+        description="Pages and folders nested inside this one."
+        actions={
+          editable && (
+            <>
+              <Button
+                type="button"
+                size="sm"
+                disabled={createMutation.isPending}
+                onClick={() => createMutation.mutate(NodeType.PAGE)}
+              >
+                <FilePlus2Icon />
+                New page
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={createMutation.isPending}
+                onClick={() => createMutation.mutate(NodeType.FOLDER)}
+              >
+                <FolderPlusIcon />
+                New folder
+              </Button>
+            </>
+          )
+        }
+        emptyTitle="This folder is empty"
+        emptyDescription="Add a page or folder to start organizing content here."
+        emptyAction={
+          editable && (
+            <Button
+              className="mt-5"
+              size="sm"
+              disabled={createMutation.isPending}
+              onClick={() => createMutation.mutate(NodeType.PAGE)}
             >
-              <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted">
-                {child.icon ? (
-                  <span className="text-xl">{child.icon}</span>
-                ) : (
-                  <Image
-                    src={
-                      child.type === NodeType.FOLDER
-                        ? "/non-empty-folder.svg"
-                        : "/files.svg"
-                    }
-                    alt=""
-                    width={20}
-                    height={20}
-                    aria-hidden="true"
-                  />
-                )}
-              </span>
-              <span className="min-w-0">
-                <span className="block truncate font-medium">{child.title}</span>
-                <span className="text-xs text-muted-foreground">
-                  {child.type === NodeType.FOLDER ? "Folder" : "Page"}
-                </span>
-              </span>
-            </Link>
-          ))}
-        </div>
-      ) : (
-        <div className="rounded-lg border border-dashed px-4 py-8 text-center text-sm text-muted-foreground">
-          This folder is empty.
-        </div>
-      )}
-    </section>
+              <FilePlus2Icon />
+              Add a page
+            </Button>
+          )
+        }
+      />
+    </div>
   );
 }

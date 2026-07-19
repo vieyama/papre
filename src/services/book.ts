@@ -16,11 +16,12 @@ import { storeBookPdf } from "@/lib/minio";
 import prisma from "@/lib/prisma";
 import { sanitizePageContent } from "@/lib/sanitize-page-content";
 import { getWorkspaceAccess } from "@/lib/workspace-access";
+import {
+  BOOK_COLLECTION_ICON,
+  BOOK_HTML_ICON,
+  BOOK_PDF_ICON,
+} from "@/lib/book-node";
 import { revalidatePath } from "next/cache";
-
-const BOOK_COLLECTION_ICON = "📚";
-const BOOK_HTML_ICON = "📖";
-const BOOK_PDF_ICON = "📕";
 
 type CreateBookCollectionInput = {
   workspaceId: string;
@@ -109,7 +110,7 @@ async function getBookCollectionForEdit(
     where: {
       id: collectionId,
       workspaceId,
-      type: NodeType.FOLDER,
+      type: NodeType.BOOK,
       icon: BOOK_COLLECTION_ICON,
       isArchived: false,
     },
@@ -183,7 +184,7 @@ export async function getBookCollectionsByUserId(
 ): Promise<BookCollectionSummary[]> {
   const collections = await prisma.node.findMany({
     where: {
-      type: NodeType.FOLDER,
+      type: NodeType.BOOK,
       icon: BOOK_COLLECTION_ICON,
       isArchived: false,
       workspace: {
@@ -240,7 +241,7 @@ export async function getBookCollectionDetail(
   const collection = await prisma.node.findFirst({
     where: {
       id: collectionId,
-      type: NodeType.FOLDER,
+      type: NodeType.BOOK,
       icon: BOOK_COLLECTION_ICON,
       isArchived: false,
       workspace: {
@@ -334,7 +335,7 @@ export async function getBookReaderVolume(
       type: NodeType.PAGE,
       isArchived: false,
       parent: {
-        type: NodeType.FOLDER,
+        type: NodeType.BOOK,
         icon: BOOK_COLLECTION_ICON,
         isArchived: false,
       },
@@ -444,7 +445,7 @@ export async function createBookCollection(input: CreateBookCollectionInput) {
     data: {
       id: collectionId,
       title: encryptedTitle,
-      type: NodeType.FOLDER,
+      type: NodeType.BOOK,
       workspaceId: input.workspaceId,
       createdById: userId,
       position: (lastSibling?.position ?? -1) + 1,

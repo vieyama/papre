@@ -9,17 +9,15 @@ export function BackButton() {
   const router = useRouter();
 
   return (
-    <div className="ml-4 mt-2">
-      <Button
-        type="button"
-        variant="ghost"
-        className="cursor-pointer"
-        size="sm"
-        onClick={() => router.back()}
-      >
-        <ChevronLeftIcon />
-        Back
-      </Button>
-    </div>
+    <Button
+      type="button"
+      variant="ghost"
+      className="-ml-3 cursor-pointer"
+      size="sm"
+      onClick={() => router.back()}
+    >
+      <ChevronLeftIcon />
+      Back
+    </Button>
   );
 }
