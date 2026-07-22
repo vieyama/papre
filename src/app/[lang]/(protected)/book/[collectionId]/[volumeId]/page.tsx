@@ -58,7 +58,7 @@ export default async function BookVolumePage({
   }
 
   return (
-    <div className="mx-auto flex min-h-[calc(100vh-3.75rem)] w-full max-w-7xl flex-col px-4 py-1 sm:px-8">
+    <div className="mx-auto flex  w-full max-w-7xl flex-col px-4 py-1 sm:px-8">
       <div className="flex mb-2 justify-between items-center">
         <Button asChild variant="ghost" size="sm">
           <Link href={localeHref(`/book/${volume.collectionId}`, locale)}>

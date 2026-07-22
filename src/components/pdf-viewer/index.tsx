@@ -21,10 +21,29 @@ import { RenderLayer, RenderPluginPackage } from '@embedpdf/plugin-render/react'
 
 import { ZoomPluginPackage, ZoomMode } from '@embedpdf/plugin-zoom/react';
 import { ZoomToolbar, TextSelectionMenu } from './toolbar';
-import { InteractionManagerPluginPackage } from '@embedpdf/plugin-interaction-manager/react'
-import { SelectionPluginPackage } from '@embedpdf/plugin-selection/react'
-import { PagePointerProvider } from '@embedpdf/plugin-interaction-manager/react';
-import { SelectionLayer } from '@embedpdf/plugin-selection/react';
+import {
+    InteractionManagerPluginPackage,
+    PagePointerProvider,
+    useInteractionManagerCapability,
+    usePointerHandlers,
+} from '@embedpdf/plugin-interaction-manager/react'
+import {
+    SelectionPluginPackage,
+    SelectionLayer,
+    useSelectionCapability,
+} from '@embedpdf/plugin-selection/react'
+import type { Position } from '@embedpdf/models';
+import type { EmbedPdfPointerEvent } from '@embedpdf/plugin-interaction-manager';
+
+// The stock "pointerMode" wants raw touch events (touchAction: 'none' +
+// preventDefault on touchmove), which is what let a swipe be interpreted as a
+// text-selection drag instead of a scroll. We keep that mode id (so it stays
+// the plugin's default) but turn raw-touch off, and add a second mode that
+// only a long-press switches into, where selection is actually enabled.
+const POINTER_MODE = 'pointerMode';
+const TEXT_SELECT_MODE = 'textSelect';
+const LONG_PRESS_MS = 450;
+const LONG_PRESS_MOVE_TOLERANCE = 10;
 
 // Params sent whenever the "last read page" should be persisted.
 // The actual API call lives wherever this component is consumed -
@@ -94,6 +113,127 @@ const LastReadPageSync = ({
     return null;
 };
 
+// Headless helper: configures the two interaction modes described above and
+// enables text selection only for the long-press mode, then auto-reverts back
+// to the (scrollable) default mode once a selection ends or the user taps
+// empty space.
+const TouchSelectionModes = ({ documentId }: { documentId: string }) => {
+    const { provides: interactionManager } = useInteractionManagerCapability();
+    const { provides: selection } = useSelectionCapability();
+
+    useEffect(() => {
+        if (!interactionManager || !selection) return;
+
+        interactionManager.registerMode({
+            id: POINTER_MODE,
+            scope: 'page',
+            exclusive: false,
+            cursor: 'auto',
+            wantsRawTouch: false,
+        });
+        interactionManager.registerMode({
+            id: TEXT_SELECT_MODE,
+            scope: 'page',
+            exclusive: false,
+            cursor: 'text',
+        });
+
+        selection.enableForMode(
+            POINTER_MODE,
+            { enableSelection: false, showSelectionRects: false, enableMarquee: false },
+            documentId,
+        );
+        selection.enableForMode(
+            TEXT_SELECT_MODE,
+            { enableSelection: true, showSelectionRects: true, enableMarquee: false },
+            documentId,
+        );
+
+        const revertToScrollMode = () => interactionManager.forDocument(documentId).activateDefaultMode();
+
+        const unsubEnd = selection.onEndSelection(({ documentId: eventDocId }) => {
+            if (eventDocId === documentId) revertToScrollMode();
+        });
+        const unsubEmptyClick = selection.onEmptySpaceClick(({ documentId: eventDocId }) => {
+            if (eventDocId === documentId) revertToScrollMode();
+        });
+
+        return () => {
+            unsubEnd();
+            unsubEmptyClick();
+        };
+    }, [interactionManager, selection, documentId]);
+
+    return null;
+};
+
+// Headless helper, one per page: detects a press-and-hold with little
+// movement and switches that document into text-select mode, replaying the
+// original pointer-down into the (now active) selection handler so the same
+// continuous touch drag carries on as a text selection instead of needing a
+// second gesture.
+const LongPressToSelect = ({
+    documentId,
+    pageIndex,
+}: {
+    documentId: string;
+    pageIndex: number;
+}) => {
+    const { provides: interactionManager } = useInteractionManagerCapability();
+    const { register } = usePointerHandlers({ documentId, pageIndex, modeId: POINTER_MODE });
+
+    useEffect(() => {
+        if (!interactionManager) return;
+
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        let startPos: Position | null = null;
+        let startEvt: EmbedPdfPointerEvent | null = null;
+
+        const clearPress = () => {
+            if (timer) clearTimeout(timer);
+            timer = null;
+            startPos = null;
+            startEvt = null;
+        };
+
+        const unregister = register({
+            onPointerDown: (pos, evt) => {
+                startPos = pos;
+                startEvt = evt;
+                timer = setTimeout(() => {
+                    if (!startPos || !startEvt) return;
+
+                    const scope = interactionManager.forDocument(documentId);
+                    scope.activate(TEXT_SELECT_MODE);
+
+                    const handlers = interactionManager.getHandlersForScope({
+                        type: 'page',
+                        documentId,
+                        pageIndex,
+                    });
+                    handlers?.onPointerDown?.(startPos, startEvt, scope.getActiveMode());
+                }, LONG_PRESS_MS);
+            },
+            onPointerMove: (pos) => {
+                if (!startPos || !timer) return;
+
+                const dx = pos.x - startPos.x;
+                const dy = pos.y - startPos.y;
+                if (Math.sqrt(dx * dx + dy * dy) > LONG_PRESS_MOVE_TOLERANCE) clearPress();
+            },
+            onPointerUp: clearPress,
+            onPointerCancel: clearPress,
+        });
+
+        return () => {
+            clearPress();
+            unregister?.();
+        };
+    }, [interactionManager, register, documentId, pageIndex]);
+
+    return null;
+};
+
 export const PDFViewer = ({ pdfUrl, initialPage, onSaveLastReadPage }: PDFViewerProps) => {
     // 1. Register the plugins you need
     const plugins = [
@@ -132,7 +272,7 @@ export const PDFViewer = ({ pdfUrl, initialPage, onSaveLastReadPage }: PDFViewer
 
     // 3. Wrap your UI with the <EmbedPDF> provider
     return (
-        <div style={{ height: '580px' }}>
+        <div style={{ height: '100%' }}>
             <EmbedPDF engine={engine} config={config} plugins={plugins}>
                 {({ activeDocumentId }) =>
                     activeDocumentId && (
@@ -146,12 +286,14 @@ export const PDFViewer = ({ pdfUrl, initialPage, onSaveLastReadPage }: PDFViewer
                                             initialPage={initialPage}
                                             onSaveLastReadPage={onSaveLastReadPage}
                                         />
+                                        {/* Headless: swipe scrolls by default, long-press enables text selection */}
+                                        <TouchSelectionModes documentId={activeDocumentId} />
 
                                         {/* Toolbar */}
                                         <ZoomToolbar documentId={activeDocumentId} />
                                         {/* PDF Viewer Area */}
                                         <div
-                                            className="relative h-100 sm:h-125"
+                                            className="relative h-[78vh] sm:h-125"
                                             style={{ userSelect: 'none' }}
                                         >
                                             <Viewport
@@ -165,6 +307,10 @@ export const PDFViewer = ({ pdfUrl, initialPage, onSaveLastReadPage }: PDFViewer
                                                             documentId={activeDocumentId}
                                                             pageIndex={pageIndex}
                                                         >
+                                                            <LongPressToSelect
+                                                                documentId={activeDocumentId}
+                                                                pageIndex={pageIndex}
+                                                            />
                                                             <RenderLayer
                                                                 documentId={activeDocumentId}
                                                                 pageIndex={pageIndex}
