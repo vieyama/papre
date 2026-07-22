@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowLeftIcon,
   BookOpenIcon,
@@ -38,6 +38,10 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { useDictionary } from "@/i18n/dictionary-context";
+import { localeHref } from "@/i18n/paths";
+import { formatMessage } from "@/i18n/format";
+import type { Locale } from "@/i18n/config";
 
 type BookCollection = {
   id: string;
@@ -60,8 +64,8 @@ type DeleteTarget =
     title: string;
   };
 
-function formatUpdatedAt(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
+function formatUpdatedAt(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(locale === "id" ? "id-ID" : "en-US", {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -74,6 +78,8 @@ export function BookCollectionDetail({
   collection: BookCollection;
 }) {
   const router = useRouter();
+  const { lang } = useParams<{ lang: Locale }>();
+  const dict = useDictionary();
   const [open, setOpen] = React.useState(false);
   const [manualTitle, setManualTitle] = React.useState("");
   const [pdfTitle, setPdfTitle] = React.useState("");
@@ -97,14 +103,14 @@ export function BookCollectionDetail({
       });
 
       if (result.error || !result.volume?.id) {
-        const message = result.error ?? "Failed to create volume. Please try again.";
+        const message = result.error ?? dict.book.collectionDetail.createVolumeError;
         setError(message);
         return;
       }
 
       setManualTitle("");
       setOpen(false);
-      router.push(`/book/${collection.id}/${result.volume.id}?mode=create`);
+      router.push(localeHref(`/book/${collection.id}/${result.volume.id}?mode=create`, lang));
       router.refresh();
     });
   }
@@ -122,14 +128,14 @@ export function BookCollectionDetail({
       const result = await importBookPdf(formData);
       if (result.error || !result.volume?.id) {
         console.error(result.error)
-        const message = result.error || "Failed to import PDF. Please try again.";
+        const message = result.error || dict.book.collectionDetail.importPdfError;
         setError(message);
         return;
       }
 
       setPdfTitle("");
       setOpen(false);
-      router.push(`/book/${collection.id}/${result.volume.id}`);
+      router.push(localeHref(`/book/${collection.id}/${result.volume.id}`, lang));
       router.refresh();
     });
   }
@@ -160,7 +166,7 @@ export function BookCollectionDetail({
       setDeleteTarget(null);
 
       if (deleteTarget.type === "collection") {
-        router.push("/book");
+        router.push(localeHref("/book", lang));
       }
 
       router.refresh();
@@ -171,9 +177,9 @@ export function BookCollectionDetail({
     <div className="mx-auto w-full max-w-6xl px-6 py-8 md:px-10 md:py-12">
       <div className="mb-6">
         <Button asChild variant="ghost" size="sm">
-          <Link href="/book">
+          <Link href={localeHref("/book", lang)}>
             <ArrowLeftIcon />
-            Back
+            {dict.common.back}
           </Link>
         </Button>
       </div>
@@ -204,20 +210,20 @@ export function BookCollectionDetail({
               }
             >
               <Trash2Icon />
-              Delete collection
+              {dict.book.collectionDetail.deleteCollection}
             </Button>
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button>
                   <PlusIcon />
-                  Add volume
+                  {dict.book.collectionDetail.addVolume}
                 </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>
-                  <DialogTitle>Add volume</DialogTitle>
+                  <DialogTitle>{dict.book.collectionDetail.addVolumeTitle}</DialogTitle>
                   <DialogDescription>
-                    Import a PDF book or start writing a volume with the editor.
+                    {dict.book.collectionDetail.addVolumeDescription}
                   </DialogDescription>
                 </DialogHeader>
 
@@ -225,30 +231,30 @@ export function BookCollectionDetail({
                   <TabsList className="w-full">
                     <TabsTrigger value="pdf" className="w-full">
                       <UploadIcon />
-                      PDF
+                      {dict.book.collectionDetail.tabPdf}
                     </TabsTrigger>
                     <TabsTrigger value="manual" className="w-full">
                       <FileTextIcon />
-                      Write
+                      {dict.book.collectionDetail.tabWrite}
                     </TabsTrigger>
                   </TabsList>
 
                   <TabsContent value="pdf">
                     <form onSubmit={handleImportPdf} className="mt-4 grid gap-4">
                       <div className="grid gap-2">
-                        <Label htmlFor="pdf-title">Volume title</Label>
+                        <Label htmlFor="pdf-title">{dict.book.collectionDetail.volumeTitleLabel}</Label>
                         <Input
                           id="pdf-title"
                           name="title"
                           value={pdfTitle}
                           onChange={(event) => setPdfTitle(event.target.value)}
-                          placeholder="Volume 1"
+                          placeholder={dict.book.collectionDetail.volumeTitlePlaceholder}
                           maxLength={100}
                           required
                         />
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="pdf-file">PDF file</Label>
+                        <Label htmlFor="pdf-file">{dict.book.collectionDetail.pdfFileLabel}</Label>
                         <Input
                           id="pdf-file"
                           name="file"
@@ -262,7 +268,7 @@ export function BookCollectionDetail({
                       )}
                       <DialogFooter>
                         <Button type="submit" disabled={isPending}>
-                          {isPending ? "Importing..." : "Import PDF"}
+                          {isPending ? dict.book.collectionDetail.importing : dict.book.collectionDetail.importPdf}
                         </Button>
                       </DialogFooter>
                     </form>
@@ -274,14 +280,14 @@ export function BookCollectionDetail({
                       className="mt-4 grid gap-4"
                     >
                       <div className="grid gap-2">
-                        <Label htmlFor="manual-title">Volume title</Label>
+                        <Label htmlFor="manual-title">{dict.book.collectionDetail.volumeTitleLabel}</Label>
                         <Input
                           id="manual-title"
                           value={manualTitle}
                           onChange={(event) =>
                             setManualTitle(event.target.value)
                           }
-                          placeholder="Volume 1"
+                          placeholder={dict.book.collectionDetail.volumeTitlePlaceholder}
                           maxLength={100}
                           required
                         />
@@ -291,7 +297,7 @@ export function BookCollectionDetail({
                       )}
                       <DialogFooter>
                         <Button type="submit" disabled={isPending}>
-                          {isPending ? "Creating..." : "Start writing"}
+                          {isPending ? dict.book.collectionDetail.creating : dict.book.collectionDetail.startWriting}
                         </Button>
                       </DialogFooter>
                     </form>
@@ -312,7 +318,7 @@ export function BookCollectionDetail({
                 className="flex items-center gap-2 rounded-lg border bg-card px-4 py-4 transition-colors hover:bg-muted/40"
               >
                 <Link
-                  href={`/book/${collection.id}/${volume.id}`}
+                  href={localeHref(`/book/${collection.id}/${volume.id}`, lang)}
                   className="group flex min-w-0 flex-1 items-center gap-4"
                 >
                   <span className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-muted text-xl">
@@ -323,8 +329,8 @@ export function BookCollectionDetail({
                       {volume.title}
                     </span>
                     <span className="mt-1 block text-xs text-muted-foreground">
-                      {volume.kind === "pdf" ? "PDF book" : "Manual writing"} ·{" "}
-                      {formatUpdatedAt(volume.updatedAt)}
+                      {volume.kind === "pdf" ? dict.book.collectionDetail.kindPdf : dict.book.collectionDetail.kindManual} ·{" "}
+                      {formatUpdatedAt(volume.updatedAt, lang)}
                     </span>
                   </span>
                   <BookOpenIcon className="size-4 shrink-0 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
@@ -340,7 +346,7 @@ export function BookCollectionDetail({
                         title: volume.title,
                       })
                     }
-                    aria-label={`Delete ${volume.title}`}
+                    aria-label={formatMessage(dict.book.collectionDetail.deleteAria, { title: volume.title })}
                   >
                     <Trash2Icon />
                   </Button>
@@ -353,9 +359,9 @@ export function BookCollectionDetail({
             <div className="mx-auto flex size-12 items-center justify-center rounded-lg bg-muted">
               <BookOpenIcon className="size-5 text-muted-foreground" />
             </div>
-            <h2 className="mt-4 font-medium">No volumes yet</h2>
+            <h2 className="mt-4 font-medium">{dict.book.collectionDetail.emptyTitle}</h2>
             <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-              Add a PDF or create a manual volume to begin this collection.
+              {dict.book.collectionDetail.emptyDescription}
             </p>
           </div>
         )}
@@ -378,15 +384,18 @@ export function BookCollectionDetail({
         >
           <DialogHeader>
             <DialogTitle>
-              Delete {deleteTarget?.type === "collection" ? "collection" : "volume"}?
+              {deleteTarget?.type === "collection"
+                ? dict.book.collectionDetail.deleteTitleCollection
+                : dict.book.collectionDetail.deleteTitleVolume}
             </DialogTitle>
             <DialogDescription>
-              &quot;{deleteTarget?.title}&quot;
-              {deleteTarget?.type === "collection" &&
-                collection.volumes.length > 0
-                ? " and all volumes inside it"
-                : ""}{" "}
-              will be removed from Book.
+              {formatMessage(dict.book.collectionDetail.deleteDescription, {
+                title: deleteTarget?.title ?? "",
+                extra:
+                  deleteTarget?.type === "collection" && collection.volumes.length > 0
+                    ? dict.book.collectionDetail.extraCollectionNote
+                    : "",
+              })}
             </DialogDescription>
           </DialogHeader>
 
@@ -397,7 +406,7 @@ export function BookCollectionDetail({
           <DialogFooter>
             <DialogClose asChild>
               <Button variant="outline" disabled={isPending}>
-                Cancel
+                {dict.book.collectionDetail.cancel}
               </Button>
             </DialogClose>
             <Button
@@ -406,7 +415,7 @@ export function BookCollectionDetail({
               disabled={isPending}
               onClick={handleDeleteTarget}
             >
-              {isPending ? "Deleting..." : "Delete"}
+              {isPending ? dict.book.collectionDetail.deleting : dict.book.collectionDetail.delete}
             </Button>
           </DialogFooter>
         </DialogContent>

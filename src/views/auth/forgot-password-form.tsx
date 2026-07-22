@@ -2,6 +2,7 @@
 
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from "next/link"
+import { useParams } from "next/navigation"
 import { useState, useTransition } from "react"
 import { useForm } from "react-hook-form"
 
@@ -16,14 +17,19 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { requestPasswordReset } from "@/services/auth"
 import {
-  forgotPasswordSchema,
+  createForgotPasswordSchema,
   type ForgotPasswordFormData,
 } from "./authSchema"
+import { useDictionary } from "@/i18n/dictionary-context"
+import { localeHref } from "@/i18n/paths"
+import type { Locale } from "@/i18n/config"
 
 export function ForgotPasswordForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
+  const { lang } = useParams<{ lang: Locale }>()
+  const dict = useDictionary()
   const [isPending, startTransition] = useTransition()
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -32,7 +38,7 @@ export function ForgotPasswordForm({
     handleSubmit,
     formState: { errors },
   } = useForm<ForgotPasswordFormData>({
-    resolver: zodResolver(forgotPasswordSchema),
+    resolver: zodResolver(createForgotPasswordSchema(dict.auth.validation)),
     defaultValues: { email: "" },
   })
 
@@ -42,11 +48,11 @@ export function ForgotPasswordForm({
 
     startTransition(async () => {
       try {
-        const result = await requestPasswordReset(data)
+        const result = await requestPasswordReset(data, lang)
         setError(result.error ?? null)
         setMessage(result.message ?? null)
       } catch {
-        setError("Gagal mengirim email reset password. Silakan coba lagi.")
+        setError(dict.auth.forgotPassword.genericError)
       }
     })
   }
@@ -54,9 +60,9 @@ export function ForgotPasswordForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Forgot your password?</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{dict.auth.forgotPassword.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Enter your email and we will send you a reset link.
+          {dict.auth.forgotPassword.subtitle}
         </p>
       </div>
 
@@ -74,7 +80,7 @@ export function ForgotPasswordForm({
       <form onSubmit={handleSubmit(handleResetRequest)}>
         <FieldGroup>
           <Field>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <FieldLabel htmlFor="email">{dict.auth.forgotPassword.emailLabel}</FieldLabel>
             <Input
               {...register("email")}
               id="email"
@@ -91,10 +97,10 @@ export function ForgotPasswordForm({
           </Field>
           <Field>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Sending..." : "Send reset link"}
+              {isPending ? dict.auth.forgotPassword.submitPending : dict.auth.forgotPassword.submit}
             </Button>
             <FieldDescription className="text-center">
-              Remember your password? <Link href="/login">Back to login</Link>
+              {dict.auth.forgotPassword.rememberPassword} <Link href={localeHref("/login", lang)}>{dict.auth.forgotPassword.backToLogin}</Link>
             </FieldDescription>
           </Field>
         </FieldGroup>

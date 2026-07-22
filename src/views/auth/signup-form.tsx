@@ -10,19 +10,24 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import { useState, useTransition } from "react"
-import { RegisterFormData, registerSchema } from "./authSchema"
+import { createRegisterSchema, type RegisterFormData } from "./authSchema"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { registerWithEmail } from "@/services/auth"
 import { Eye, EyeOff } from "lucide-react"
+import { useDictionary } from "@/i18n/dictionary-context"
+import { localeHref } from "@/i18n/paths"
+import type { Locale } from "@/i18n/config"
 
 export function SignupForm({
   className,
   ...props
 }: React.ComponentProps<"div">) {
   const router = useRouter()
+  const { lang } = useParams<{ lang: Locale }>()
+  const dict = useDictionary()
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
@@ -33,7 +38,7 @@ export function SignupForm({
     handleSubmit,
     formState: { errors },
   } = useForm<RegisterFormData>({
-    resolver: zodResolver(registerSchema),
+    resolver: zodResolver(createRegisterSchema(dict.auth.validation)),
     defaultValues: { email: '', password: '', confirmPassword: '' },
   })
 
@@ -42,7 +47,7 @@ export function SignupForm({
 
     startTransition(async () => {
       try {
-        const result = await registerWithEmail(data)
+        const result = await registerWithEmail(data, lang)
 
         if (result?.error) {
           setError(result.error)
@@ -50,11 +55,11 @@ export function SignupForm({
         }
 
         if (result?.success) {
-          router.replace('/home')
+          router.replace(localeHref('/home', lang))
           router.refresh()
         }
       } catch {
-        setError('Autentikasi gagal. Silakan coba lagi.')
+        setError(dict.auth.signup.genericError)
       }
     })
   }
@@ -62,9 +67,9 @@ export function SignupForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Create your account</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{dict.auth.signup.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Enter your email below to create your account
+          {dict.auth.signup.subtitle}
         </p>
       </div>
 
@@ -77,14 +82,14 @@ export function SignupForm({
       <form onSubmit={handleSubmit(handleAuth)}>
         <FieldGroup className="gap-4">
           <Field>
-            <FieldLabel htmlFor="name">Full Name</FieldLabel>
+            <FieldLabel htmlFor="name">{dict.auth.signup.fullNameLabel}</FieldLabel>
             <Input id="name" type="text" placeholder="John Doe" {...register('name')} />
             {errors.name && (
               <p className="ml-1 text-xs text-destructive">{errors.name.message}</p>
             )}
           </Field>
           <Field>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
+            <FieldLabel htmlFor="email">{dict.auth.signup.emailLabel}</FieldLabel>
             <Input
               id="email"
               type="email"
@@ -96,7 +101,7 @@ export function SignupForm({
             )}
           </Field>
           <Field>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
+            <FieldLabel htmlFor="password">{dict.auth.signup.passwordLabel}</FieldLabel>
             <div className="relative">
               <Input
                 {...register('password')}
@@ -109,7 +114,7 @@ export function SignupForm({
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? dict.auth.hidePassword : dict.auth.showPassword}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -119,7 +124,7 @@ export function SignupForm({
             )}
           </Field>
           <Field>
-            <FieldLabel htmlFor="confirm-password">Confirm Password</FieldLabel>
+            <FieldLabel htmlFor="confirm-password">{dict.auth.signup.confirmPasswordLabel}</FieldLabel>
             <div className="relative">
               <Input
                 {...register('confirmPassword')}
@@ -132,7 +137,7 @@ export function SignupForm({
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? dict.auth.hidePassword : dict.auth.showPassword}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -142,16 +147,16 @@ export function SignupForm({
             )}
           </Field>
           <Field>
-            <Button type="submit" disabled={isPending}>{isPending ? 'Signing up' : 'Create Account'}</Button>
+            <Button type="submit" disabled={isPending}>{isPending ? dict.auth.signup.submitPending : dict.auth.signup.submit}</Button>
             <FieldDescription className="text-center">
-              Already have an account? <Link href="/login">Sign in</Link>
+              {dict.auth.signup.haveAccount} <Link href={localeHref("/login", lang)}>{dict.auth.signup.signIn}</Link>
             </FieldDescription>
           </Field>
         </FieldGroup>
       </form>
       <FieldDescription className="text-center">
-        By clicking continue, you agree to our <Link href="/terms">Terms of Service</Link>{" "}
-        and <Link href="/privacy">Privacy Policy</Link>.
+        {dict.auth.termsAgreementPrefix} <Link href={localeHref("/terms", lang)}>{dict.auth.termsLink}</Link>{" "}
+        {dict.auth.termsAgreementJoin} <Link href={localeHref("/privacy", lang)}>{dict.auth.privacyLink}</Link>.
       </FieldDescription>
     </div>
   )

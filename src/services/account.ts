@@ -10,8 +10,8 @@ const accountProfileSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(2, "Nama minimal 2 karakter.")
-    .max(128, "Nama terlalu panjang."),
+    .min(2, "Name must be at least 2 characters.")
+    .max(128, "Name is too long."),
 });
 
 export type UpdateAccountResult = {
@@ -26,14 +26,14 @@ export async function updateAccountProfile(
   const session = await auth();
 
   if (!session?.user?.id) {
-    return { error: "Sesi Anda sudah berakhir. Silakan masuk kembali." };
+    return { error: "Your session has expired. Please sign in again." };
   }
 
   const parsed = accountProfileSchema.safeParse(input);
 
   if (!parsed.success) {
     return {
-      error: parsed.error.issues[0]?.message ?? "Nama tidak valid.",
+      error: parsed.error.issues[0]?.message ?? "Invalid name.",
     };
   }
 
@@ -50,8 +50,7 @@ export async function updateAccountProfile(
       },
     });
 
-    revalidatePath("/account");
-    revalidatePath("/home", "layout");
+    revalidatePath("/[lang]/(protected)", "layout");
 
     return {
       success: true,
@@ -59,6 +58,6 @@ export async function updateAccountProfile(
     };
   } catch (error) {
     console.error("Account profile update error:", error);
-    return { error: "Profil gagal diperbarui. Silakan coba lagi." };
+    return { error: "Failed to update profile. Please try again." };
   }
 }

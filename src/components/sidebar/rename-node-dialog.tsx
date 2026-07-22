@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { NodeWithChildren } from './type';
 import { renameNode } from '@/services/node';
 import { useRouter } from 'next/navigation';
+import { useDictionary } from '@/i18n/dictionary-context';
 
 interface RenameNodeDialogProps {
     isPending: boolean,
@@ -28,6 +29,8 @@ const RenameNodeDialog: React.FC<RenameNodeDialogProps> = ({
     setNodeToRename
 }) => {
     const router = useRouter();
+    const dict = useDictionary();
+    const isFolder = nodeToRename?.type === NodeType.FOLDER;
 
     function handleRenameNode(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -69,12 +72,10 @@ const RenameNodeDialog: React.FC<RenameNodeDialogProps> = ({
                 <form onSubmit={handleRenameNode}>
                     <DialogHeader>
                         <DialogTitle>
-                            Rename{" "}
-                            {nodeToRename?.type === NodeType.FOLDER ? "folder" : "page"}
+                            {isFolder ? dict.dialogs.rename.titleFolder : dict.dialogs.rename.titlePage}
                         </DialogTitle>
                         <DialogDescription>
-                            Enter a new name for this{" "}
-                            {nodeToRename?.type === NodeType.FOLDER ? "folder" : "page"}.
+                            {isFolder ? dict.dialogs.rename.descriptionFolder : dict.dialogs.rename.descriptionPage}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -95,14 +96,14 @@ const RenameNodeDialog: React.FC<RenameNodeDialogProps> = ({
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button type="button" variant="outline" disabled={isPending}>
-                                Cancel
+                                {dict.dialogs.rename.cancel}
                             </Button>
                         </DialogClose>
                         <Button
                             type="submit"
                             disabled={isPending || !renameTitle.trim()}
                         >
-                            {isPending ? "Renaming..." : "Rename"}
+                            {isPending ? dict.dialogs.rename.renaming : dict.dialogs.rename.rename}
                         </Button>
                     </DialogFooter>
                 </form>

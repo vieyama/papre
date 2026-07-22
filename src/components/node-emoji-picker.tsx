@@ -14,6 +14,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useDictionary } from "@/i18n/dictionary-context";
 
 export function NodeEmojiPicker({
   nodeId,
@@ -29,6 +30,7 @@ export function NodeEmojiPicker({
   editable?: boolean;
 }) {
   const router = useRouter();
+  const dict = useDictionary();
   const [isOpen, setIsOpen] = React.useState(false);
   const [selectedIcon, setSelectedIcon] = React.useState(icon);
   const updateIconMutation = useMutation({
@@ -75,7 +77,7 @@ export function NodeEmojiPicker({
           type="button"
           className="flex size-14 items-center justify-center rounded-lg text-4xl transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
           disabled={!editable || updateIconMutation.isPending}
-          aria-label="Change page icon"
+          aria-label={dict.dialogs.nodeEmoji.changeIcon}
         >
           {selectedIcon || fallbackIcon}
         </button>

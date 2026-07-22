@@ -2,9 +2,13 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { NodeType } from '@/generated/prisma/enums';
 import React, { startTransition } from 'react';
 import { Button } from '@/components/ui/button';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname, useParams, useRouter } from 'next/navigation';
 import { deleteNode } from '@/services/node';
 import { NodeWithChildren } from './type';
+import { useDictionary } from '@/i18n/dictionary-context';
+import { localeHref, stripLocale } from '@/i18n/paths';
+import { formatMessage } from '@/i18n/format';
+import type { Locale } from '@/i18n/config';
 
 interface DeleteDialogProps {
     workspaceId: string
@@ -20,6 +24,9 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ workspaceId, nodeToDelete, 
 
     const router = useRouter();
     const pathname = usePathname();
+    const { lang } = useParams<{ lang: Locale }>();
+    const dict = useDictionary();
+    const isFolder = nodeToDelete?.type === NodeType.FOLDER;
 
     function handleDeleteNode() {
         if (!nodeToDelete) return;
@@ -39,15 +46,16 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ workspaceId, nodeToDelete, 
 
             setNodeToDelete(null);
 
-            const activeNodeId = pathname.startsWith("/home/")
-                ? pathname.slice("/home/".length).split("/")[0]
+            const { path } = stripLocale(pathname);
+            const activeNodeId = path.startsWith("/home/")
+                ? path.slice("/home/".length).split("/")[0]
                 : null;
 
             if (
                 activeNodeId &&
                 result.archivedNodeIds?.includes(activeNodeId)
             ) {
-                router.push("/home");
+                router.push(localeHref("/home", lang));
             }
 
             router.refresh();
@@ -72,14 +80,13 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ workspaceId, nodeToDelete, 
             >
                 <DialogHeader>
                     <DialogTitle>
-                        Delete {nodeToDelete?.type === NodeType.FOLDER ? "folder" : "page"}?
+                        {isFolder ? dict.dialogs.delete.titleFolder : dict.dialogs.delete.titlePage}
                     </DialogTitle>
                     <DialogDescription>
-                        &quot;{nodeToDelete?.title}&quot;
-                        {nodeToDelete?.children.length
-                            ? " and all pages inside it"
-                            : ""}{" "}
-                        will be moved out of the sidebar.
+                        {formatMessage(dict.dialogs.delete.description, {
+                            title: nodeToDelete?.title ?? "",
+                            extra: nodeToDelete?.children.length ? dict.dialogs.delete.extraFolder : dict.dialogs.delete.extraPage,
+                        })}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -90,7 +97,7 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ workspaceId, nodeToDelete, 
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button variant="outline" disabled={isPending}>
-                            Cancel
+                            {dict.dialogs.delete.cancel}
                         </Button>
                     </DialogClose>
                     <Button
@@ -100,9 +107,8 @@ const DeleteDialog: React.FC<DeleteDialogProps> = ({ workspaceId, nodeToDelete, 
                         onClick={handleDeleteNode}
                     >
                         {isPending
-                            ? "Deleting..."
-                            : `Delete ${nodeToDelete?.type === NodeType.FOLDER ? "folder" : "page"
-                            }`}
+                            ? dict.dialogs.delete.deleting
+                            : isFolder ? dict.dialogs.delete.deleteFolder : dict.dialogs.delete.deletePage}
                     </Button>
                 </DialogFooter>
             </DialogContent>

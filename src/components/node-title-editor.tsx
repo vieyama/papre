@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 import { renameNode } from "@/services/node";
+import { useDictionary } from "@/i18n/dictionary-context";
 
 type NodeTitleForm = {
   title: string;
@@ -24,6 +25,7 @@ export function NodeTitleEditor({
   editable = true,
 }: NodeTitleEditorProps) {
   const router = useRouter();
+  const dict = useDictionary();
   const {
     register,
     handleSubmit,
@@ -37,10 +39,10 @@ export function NodeTitleEditor({
     },
   });
   const titleField = register("title", {
-    required: "Name cannot be empty.",
+    required: dict.dialogs.nodeTitle.nameEmpty,
     maxLength: {
       value: 100,
-      message: "Name must be 100 characters or fewer.",
+      message: dict.dialogs.nodeTitle.nameTooLong,
     },
   });
 
@@ -103,7 +105,7 @@ export function NodeTitleEditor({
           }
         }}
         disabled={renameMutation.isPending}
-        aria-label="Node title"
+        aria-label={dict.dialogs.nodeTitle.ariaLabel}
         aria-invalid={errors.title !== undefined}
         className="w-full border-0 bg-transparent p-0 h-16 text-2xl sm:text-4xl font-bold tracking-tight outline-none placeholder:text-muted-foreground focus-visible:ring-0 disabled:opacity-70"
       />

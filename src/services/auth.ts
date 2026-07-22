@@ -6,15 +6,19 @@ import { sendPasswordResetEmail } from "@/lib/mail";
 import prisma from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
 import {
-  authSchema,
-  forgotPasswordSchema,
+  createAuthSchema,
+  createForgotPasswordSchema,
+  createRegisterSchema,
+  createResetPasswordSchema,
   type ForgotPasswordFormData,
-  RegisterFormData,
-  registerSchema,
-  resetPasswordSchema,
+  type RegisterFormData,
   type ResetPasswordFormData,
   type AuthFormData,
 } from "@/views/auth/authSchema";
+import { getDictionary } from "@/i18n/dictionaries";
+import { defaultLocale, type Locale } from "@/i18n/config";
+import { localeHref } from "@/i18n/paths";
+import { formatMessage } from "@/i18n/format";
 
 export type EmailAuthResult = {
   error?: string;
@@ -36,11 +40,13 @@ function getPasswordResetIdentifier(email: string) {
 
 export async function authenticateWithEmail(
   input: AuthFormData,
+  lang: Locale = defaultLocale,
 ): Promise<EmailAuthResult> {
-  const parsed = authSchema.safeParse(input);
+  const dict = await getDictionary(lang);
+  const parsed = createAuthSchema(dict.auth.validation).safeParse(input);
 
   if (!parsed.success) {
-    return { error: "Email atau password tidak valid." };
+    return { error: dict.auth.login.invalidInput };
   }
 
   const { email, password } = parsed.data;
@@ -49,14 +55,14 @@ export async function authenticateWithEmail(
     email,
     password,
     redirect: false,
-    redirectTo: "/home",
+    redirectTo: localeHref("/home", lang),
   });
 
   if (
     typeof destination !== "string" ||
     destination.includes("error=CredentialsSignin")
   ) {
-    return { error: "Email atau password salah." };
+    return { error: dict.auth.login.wrongCredentials };
   }
 
   return { success: true };
@@ -64,11 +70,13 @@ export async function authenticateWithEmail(
 
 export async function registerWithEmail(
   input: RegisterFormData,
+  lang: Locale = defaultLocale,
 ): Promise<EmailAuthResult> {
-  const parsed = registerSchema.safeParse(input);
+  const dict = await getDictionary(lang);
+  const parsed = createRegisterSchema(dict.auth.validation).safeParse(input);
 
   if (!parsed.success) {
-    return { error: "Email atau password tidak valid." };
+    return { error: dict.auth.signup.invalidInput };
   }
 
   const { email, password, name } = parsed.data;
@@ -85,15 +93,18 @@ export async function registerWithEmail(
     });
 
     if (existingUser?.passwordHash) {
-      return { error: "Email sudah terdaftar. Silakan masuk." };
+      return { error: dict.auth.signup.emailTaken };
     }
 
     if (existingUser) {
       const provider = existingUser.accounts[0]?.provider;
-      const providerName = provider === "google" ? "Google" : provider;
+      const providerName =
+        provider === "google" ? "Google" : provider ?? dict.auth.signup.unknownProvider;
 
       return {
-        error: `Akun ini terdaftar melalui ${providerName ?? "provider lain"}. Masuk dengan provider tersebut untuk menjaga keamanan akun.`,
+        error: formatMessage(dict.auth.signup.registeredViaProvider, {
+          provider: providerName,
+        }),
       };
     }
 
@@ -110,39 +121,40 @@ export async function registerWithEmail(
       email,
       password,
       redirect: false,
-      redirectTo: "/home",
+      redirectTo: localeHref("/home", lang),
     });
 
     if (
       typeof destination !== "string" ||
       destination.includes("error=CredentialsSignin")
     ) {
-      return { error: "Registrasi berhasil, tapi gagal masuk otomatis. Silakan masuk manual." };
+      return { error: dict.auth.signup.autoLoginFailed };
     }
 
     return { success: true };
   } catch (error) {
     console.error("Registration error:", error);
-    return { error: "Terjadi kesalahan saat registrasi. Silakan coba lagi nanti." };
+    return { error: dict.auth.signup.genericError };
   }
 }
 
-export async function signInWithGoogle() {
-  await signIn("google", { redirectTo: "/home" });
+export async function signInWithGoogle(lang: Locale = defaultLocale) {
+  await signIn("google", { redirectTo: localeHref("/home", lang) });
 }
 
 export async function requestPasswordReset(
   input: ForgotPasswordFormData,
+  lang: Locale = defaultLocale,
 ): Promise<EmailAuthResult> {
-  const parsed = forgotPasswordSchema.safeParse(input);
+  const dict = await getDictionary(lang);
+  const parsed = createForgotPasswordSchema(dict.auth.validation).safeParse(input);
 
   if (!parsed.success) {
-    return { error: "Masukkan alamat email yang valid." };
+    return { error: dict.auth.forgotPassword.invalidEmail };
   }
 
   const { email } = parsed.data;
-  const genericMessage =
-    "Jika akun dengan email tersebut tersedia, tautan reset password telah dikirim.";
+  const genericMessage = dict.auth.forgotPassword.successMessage;
   let issuedIdentifier: string | undefined;
   let issuedTokenHash: string | undefined;
 
@@ -195,11 +207,11 @@ export async function requestPasswordReset(
       throw new Error("AUTH_URL is not configured");
     }
 
-    const resetUrl = new URL("/reset-password", appUrl);
+    const resetUrl = new URL(localeHref("/reset-password", lang), appUrl);
     resetUrl.searchParams.set("email", email);
     resetUrl.searchParams.set("token", token);
 
-    await sendPasswordResetEmail(email, resetUrl.toString());
+    await sendPasswordResetEmail(email, resetUrl.toString(), lang);
 
     return { success: true, message: genericMessage };
   } catch (error) {
@@ -217,17 +229,19 @@ export async function requestPasswordReset(
     }
 
     console.error("Password reset request error:", error);
-    return { error: "Gagal mengirim email reset password. Silakan coba lagi nanti." };
+    return { error: dict.auth.forgotPassword.genericError };
   }
 }
 
 export async function resetPassword(
   input: ResetPasswordFormData,
+  lang: Locale = defaultLocale,
 ): Promise<EmailAuthResult> {
-  const parsed = resetPasswordSchema.safeParse(input);
+  const dict = await getDictionary(lang);
+  const parsed = createResetPasswordSchema(dict.auth.validation).safeParse(input);
 
   if (!parsed.success) {
-    return { error: "Data reset password tidak valid." };
+    return { error: dict.auth.resetPassword.invalidInput };
   }
 
   const { email, token, password } = parsed.data;
@@ -265,14 +279,14 @@ export async function resetPassword(
 
     return {
       success: true,
-      message: "Password berhasil diperbarui. Silakan masuk dengan password baru.",
+      message: dict.auth.resetPassword.successMessage,
     };
   } catch (error) {
     if (error instanceof Error && error.message === "INVALID_RESET_TOKEN") {
-      return { error: "Tautan reset password tidak valid atau sudah kedaluwarsa." };
+      return { error: dict.auth.resetPassword.expiredToken };
     }
 
     console.error("Password reset error:", error);
-    return { error: "Gagal memperbarui password. Silakan minta tautan reset baru." };
+    return { error: dict.auth.resetPassword.genericError };
   }
 }

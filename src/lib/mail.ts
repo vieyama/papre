@@ -1,6 +1,49 @@
 import "server-only";
 
 import nodemailer from "nodemailer";
+import { defaultLocale, type Locale } from "@/i18n/config";
+
+const PASSWORD_RESET_EMAIL_CONTENT: Record<
+  Locale,
+  {
+    subject: string;
+    text: (resetUrl: string) => string;
+    html: (resetUrl: string) => string;
+  }
+> = {
+  en: {
+    subject: "Reset your Papre password",
+    text: (resetUrl) =>
+      [
+        "We received a request to reset your Papre account password.",
+        "",
+        `Open the following link to set a new password: ${resetUrl}`,
+        "",
+        "This link is valid for 1 hour. Ignore this email if you did not request a password reset.",
+      ].join("\n"),
+    html: (resetUrl) => `
+      <p>We received a request to reset your Papre account password.</p>
+      <p><a href="${resetUrl}">Set a new password</a></p>
+      <p>This link is valid for 1 hour. Ignore this email if you did not request a password reset.</p>
+    `,
+  },
+  id: {
+    subject: "Reset password Papre",
+    text: (resetUrl) =>
+      [
+        "Kami menerima permintaan untuk mereset password akun Papre Anda.",
+        "",
+        `Buka tautan berikut untuk membuat password baru: ${resetUrl}`,
+        "",
+        "Tautan ini berlaku selama 1 jam. Abaikan email ini jika Anda tidak meminta reset password.",
+      ].join("\n"),
+    html: (resetUrl) => `
+      <p>Kami menerima permintaan untuk mereset password akun Papre Anda.</p>
+      <p><a href="${resetUrl}">Buat password baru</a></p>
+      <p>Tautan ini berlaku selama 1 jam. Abaikan email ini jika Anda tidak meminta reset password.</p>
+    `,
+  },
+};
 
 function getSmtpConfig() {
   const host = process.env.SMTP_HOST;
@@ -17,9 +60,14 @@ function getSmtpConfig() {
   return { host, port, user, pass, fromAddress, fromName };
 }
 
-export async function sendPasswordResetEmail(email: string, resetUrl: string) {
+export async function sendPasswordResetEmail(
+  email: string,
+  resetUrl: string,
+  lang: Locale = defaultLocale,
+) {
   const config = getSmtpConfig();
   const htmlResetUrl = resetUrl.replaceAll("&", "&amp;");
+  const content = PASSWORD_RESET_EMAIL_CONTENT[lang];
   const transporter = nodemailer.createTransport({
     host: config.host,
     port: config.port,
@@ -36,18 +84,8 @@ export async function sendPasswordResetEmail(email: string, resetUrl: string) {
       address: config.fromAddress,
     },
     to: email,
-    subject: "Reset password Papre",
-    text: [
-      "Kami menerima permintaan untuk mereset password akun Papre Anda.",
-      "",
-      `Buka tautan berikut untuk membuat password baru: ${resetUrl}`,
-      "",
-      "Tautan ini berlaku selama 1 jam. Abaikan email ini jika Anda tidak meminta reset password.",
-    ].join("\n"),
-    html: `
-      <p>Kami menerima permintaan untuk mereset password akun Papre Anda.</p>
-      <p><a href="${htmlResetUrl}">Buat password baru</a></p>
-      <p>Tautan ini berlaku selama 1 jam. Abaikan email ini jika Anda tidak meminta reset password.</p>
-    `,
+    subject: content.subject,
+    text: content.text(resetUrl),
+    html: content.html(htmlResetUrl),
   });
 }

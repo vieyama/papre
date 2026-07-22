@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
   ArrowRightIcon,
   BookOpenIcon,
@@ -26,6 +26,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { formatShortDate } from "@/lib/format-date";
+import { useDictionary } from "@/i18n/dictionary-context";
+import { localeHref } from "@/i18n/paths";
+import { formatMessage } from "@/i18n/format";
+import type { Locale } from "@/i18n/config";
 
 type BookWorkspace = {
   id: string;
@@ -42,6 +46,8 @@ export function BookLibrary({
   collections: BookCollectionSummary[];
 }) {
   const router = useRouter();
+  const { lang } = useParams<{ lang: Locale }>();
+  const dict = useDictionary();
   const { selectedWorkspace, hasHydrated } = useWorkspaceStore();
   const activeWorkspace =
     workspaces.find((workspace) => workspace.id === selectedWorkspace?.id) ??
@@ -78,7 +84,7 @@ export function BookLibrary({
 
       setTitle("");
       setOpen(false);
-      router.push(`/book/${result.collection?.id}`);
+      router.push(localeHref(`/book/${result.collection?.id}`, lang));
       router.refresh();
     });
   }
@@ -99,11 +105,10 @@ export function BookLibrary({
             <LibraryBigIcon className="size-6 text-muted-foreground" />
           </div>
           <h1 className="text-3xl font-semibold tracking-tight">
-            Book collections
+            {dict.book.library.title}
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-            Keep imported PDF books and manually written volumes together by
-            collection.
+            {dict.book.library.description}
           </p>
         </div>
 
@@ -112,26 +117,25 @@ export function BookLibrary({
             <DialogTrigger asChild>
               <Button>
                 <PlusIcon />
-                New collection
+                {dict.book.library.newCollection}
               </Button>
             </DialogTrigger>
             <DialogContent>
               <form onSubmit={handleCreate} className="grid gap-5">
                 <DialogHeader>
-                  <DialogTitle>New book collection</DialogTitle>
+                  <DialogTitle>{dict.book.library.newCollectionTitle}</DialogTitle>
                   <DialogDescription>
-                    Create a shelf for volumes, PDFs, or chapters you write
-                    manually.
+                    {dict.book.library.newCollectionDescription}
                   </DialogDescription>
                 </DialogHeader>
 
                 <div className="grid gap-2">
-                  <Label htmlFor="book-title">Collection name</Label>
+                  <Label htmlFor="book-title">{dict.book.library.nameLabel}</Label>
                   <Input
                     id="book-title"
                     value={title}
                     onChange={(event) => setTitle(event.target.value)}
-                    placeholder="Example: Tafsir Volume Set"
+                    placeholder={dict.book.library.namePlaceholder}
                     maxLength={100}
                     required
                   />
@@ -141,7 +145,7 @@ export function BookLibrary({
 
                 <DialogFooter>
                   <Button type="submit" disabled={isPending || !activeWorkspaceId}>
-                    {isPending ? "Creating..." : "Create collection"}
+                    {isPending ? dict.book.library.creating : dict.book.library.create}
                   </Button>
                 </DialogFooter>
               </form>
@@ -156,7 +160,7 @@ export function BookLibrary({
             {workspaceCollections.map((collection) => (
               <Link
                 key={collection.id}
-                href={`/book/${collection.id}`}
+                href={localeHref(`/book/${collection.id}`, lang)}
                 className="group flex min-h-44 flex-col justify-between rounded-lg border bg-card p-5 transition-colors hover:bg-muted/40"
               >
                 <div>
@@ -174,8 +178,8 @@ export function BookLibrary({
                   </p>
                 </div>
                 <div className="mt-5 flex items-center justify-between text-xs text-muted-foreground">
-                  <span>{collection.volumeCount} volumes</span>
-                  <span>{formatShortDate(collection.updatedAt)}</span>
+                  <span>{formatMessage(dict.book.library.volumesCount, { count: collection.volumeCount })}</span>
+                  <span>{formatShortDate(collection.updatedAt, lang)}</span>
                 </div>
               </Link>
             ))}
@@ -185,10 +189,9 @@ export function BookLibrary({
             <div className="mx-auto flex size-12 items-center justify-center rounded-lg bg-muted">
               <BookOpenIcon className="size-5 text-muted-foreground" />
             </div>
-            <h2 className="mt-4 font-medium">No book collections yet</h2>
+            <h2 className="mt-4 font-medium">{dict.book.library.emptyTitle}</h2>
             <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-              Start with a collection, then add a PDF volume or write one with
-              the editor.
+              {dict.book.library.emptyDescription}
             </p>
           </div>
         )}

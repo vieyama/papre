@@ -21,6 +21,7 @@ import {
   removeNodeCover,
   updateNodeCoverUrl,
 } from "@/services/node";
+import { useDictionary } from "@/i18n/dictionary-context";
 
 type CoverUrlForm = {
   coverUrl: string;
@@ -38,6 +39,7 @@ export function NodeCover({
   editable?: boolean;
 }) {
   const router = useRouter();
+  const dict = useDictionary();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [coverImage, setCoverImage] = React.useState(initialCoverImage);
   const [isUrlDialogOpen, setIsUrlDialogOpen] = React.useState(false);
@@ -62,7 +64,7 @@ export function NodeCover({
       });
 
       if (result.error || !result.coverImage) {
-        throw new Error(result.error ?? "Failed to update cover.");
+        throw new Error(result.error ?? dict.dialogs.cover.failedUpdate);
       }
 
       return result.coverImage;
@@ -84,7 +86,7 @@ export function NodeCover({
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (file.size > 10 * 1024 * 1024) {
-        throw new Error("Cover image must be 10 MB or smaller.");
+        throw new Error(dict.dialogs.cover.tooLarge);
       }
 
       const formData = new FormData();
@@ -100,7 +102,7 @@ export function NodeCover({
       };
 
       if (!response.ok || !result.coverImage) {
-        throw new Error(result.error ?? "Failed to upload cover.");
+        throw new Error(result.error ?? dict.dialogs.cover.failedUpload);
       }
 
       return result.coverImage;
@@ -181,7 +183,7 @@ export function NodeCover({
             onClick={() => fileInputRef.current?.click()}
           >
             <UploadIcon />
-            Upload cover
+            {dict.dialogs.cover.uploadCover}
           </Button>
           <Button
             type="button"
@@ -191,7 +193,7 @@ export function NodeCover({
             onClick={() => setIsUrlDialogOpen(true)}
           >
             {coverImage ? <LinkIcon /> : <ImagePlusIcon />}
-            {coverImage ? "Change URL" : "Add from URL"}
+            {coverImage ? dict.dialogs.cover.changeUrl : dict.dialogs.cover.addFromUrl}
           </Button>
           {coverImage && (
             <Button
@@ -202,7 +204,7 @@ export function NodeCover({
               onClick={() => removeMutation.mutate()}
             >
               <Trash2Icon />
-              Remove
+              {dict.dialogs.cover.remove}
             </Button>
           )}
         </div>}
@@ -228,24 +230,24 @@ export function NodeCover({
             onSubmit={handleSubmit((values) => urlMutation.mutate(values))}
           >
             <DialogHeader>
-              <DialogTitle>Add cover from URL</DialogTitle>
+              <DialogTitle>{dict.dialogs.cover.addCoverTitle}</DialogTitle>
               <DialogDescription>
-                Enter a public HTTP or HTTPS image URL.
+                {dict.dialogs.cover.addCoverDescription}
               </DialogDescription>
             </DialogHeader>
 
             <div className="my-6">
               <Input
                 type="url"
-                placeholder="https://example.com/cover.jpg"
+                placeholder={dict.dialogs.cover.urlPlaceholder}
                 autoFocus
                 disabled={urlMutation.isPending}
                 aria-invalid={errors.coverUrl !== undefined}
                 {...register("coverUrl", {
-                  required: "Image URL is required.",
+                  required: dict.dialogs.cover.urlRequired,
                   maxLength: {
                     value: 2048,
-                    message: "Image URL is too long.",
+                    message: dict.dialogs.cover.urlTooLong,
                   },
                 })}
               />
@@ -263,11 +265,11 @@ export function NodeCover({
                   variant="outline"
                   disabled={urlMutation.isPending}
                 >
-                  Cancel
+                  {dict.dialogs.cover.cancel}
                 </Button>
               </DialogClose>
               <Button type="submit" disabled={urlMutation.isPending}>
-                {urlMutation.isPending ? "Saving..." : "Save cover"}
+                {urlMutation.isPending ? dict.dialogs.cover.saving : dict.dialogs.cover.saveCover}
               </Button>
             </DialogFooter>
           </form>

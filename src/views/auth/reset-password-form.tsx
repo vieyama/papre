@@ -3,6 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Eye, EyeOff } from "lucide-react"
 import Link from "next/link"
+import { useParams } from "next/navigation"
 import { useState, useTransition } from "react"
 import { useForm } from "react-hook-form"
 
@@ -17,9 +18,12 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { resetPassword } from "@/services/auth"
 import {
-  resetPasswordSchema,
+  createResetPasswordSchema,
   type ResetPasswordFormData,
 } from "./authSchema"
+import { useDictionary } from "@/i18n/dictionary-context"
+import { localeHref } from "@/i18n/paths"
+import type { Locale } from "@/i18n/config"
 
 export function ResetPasswordForm({
   email,
@@ -30,6 +34,8 @@ export function ResetPasswordForm({
   email: string
   token: string
 }) {
+  const { lang } = useParams<{ lang: Locale }>()
+  const dict = useDictionary()
   const [isPending, startTransition] = useTransition()
   const [showPassword, setShowPassword] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
@@ -39,7 +45,7 @@ export function ResetPasswordForm({
     handleSubmit,
     formState: { errors },
   } = useForm<ResetPasswordFormData>({
-    resolver: zodResolver(resetPasswordSchema),
+    resolver: zodResolver(createResetPasswordSchema(dict.auth.validation)),
     defaultValues: {
       email,
       token,
@@ -54,11 +60,11 @@ export function ResetPasswordForm({
 
     startTransition(async () => {
       try {
-        const result = await resetPassword(data)
+        const result = await resetPassword(data, lang)
         setError(result.error ?? null)
         setMessage(result.message ?? null)
       } catch {
-        setError("Gagal memperbarui password. Silakan coba lagi.")
+        setError(dict.auth.resetPassword.genericError)
       }
     })
   }
@@ -68,9 +74,9 @@ export function ResetPasswordForm({
   return (
     <div className={cn("flex flex-col gap-6", className)} {...props}>
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Create a new password</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{dict.auth.resetPassword.title}</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Your new password must contain at least 8 characters.
+          {dict.auth.resetPassword.subtitle}
         </p>
       </div>
 
@@ -81,7 +87,7 @@ export function ResetPasswordForm({
       )}
       {(error || tokenIsMissing) && (
         <p className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
-          {error ?? "Tautan reset password tidak valid. Silakan minta tautan baru."}
+          {error ?? dict.auth.resetPassword.invalidLink}
         </p>
       )}
 
@@ -91,7 +97,7 @@ export function ResetPasswordForm({
           <input type="hidden" {...register("token")} />
           <FieldGroup>
             <Field>
-              <FieldLabel htmlFor="password">New password</FieldLabel>
+              <FieldLabel htmlFor="password">{dict.auth.resetPassword.newPasswordLabel}</FieldLabel>
               <div className="relative">
                 <Input
                   {...register("password")}
@@ -104,7 +110,7 @@ export function ResetPasswordForm({
                   type="button"
                   onClick={() => setShowPassword((visible) => !visible)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  aria-label={showPassword ? dict.auth.hidePassword : dict.auth.showPassword}
                 >
                   {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
@@ -116,7 +122,7 @@ export function ResetPasswordForm({
               )}
             </Field>
             <Field>
-              <FieldLabel htmlFor="confirm-password">Confirm new password</FieldLabel>
+              <FieldLabel htmlFor="confirm-password">{dict.auth.resetPassword.confirmNewPasswordLabel}</FieldLabel>
               <Input
                 {...register("confirmPassword")}
                 id="confirm-password"
@@ -131,16 +137,16 @@ export function ResetPasswordForm({
               )}
             </Field>
             <Button type="submit" disabled={isPending}>
-              {isPending ? "Updating..." : "Update password"}
+              {isPending ? dict.auth.resetPassword.submitPending : dict.auth.resetPassword.submit}
             </Button>
           </FieldGroup>
         </form>
       )}
       <FieldDescription className="text-center">
         {message ? (
-          <Link href="/login">Continue to login</Link>
+          <Link href={localeHref("/login", lang)}>{dict.auth.resetPassword.continueToLogin}</Link>
         ) : (
-          <Link href="/forgot-password">Request a new reset link</Link>
+          <Link href={localeHref("/forgot-password", lang)}>{dict.auth.resetPassword.requestNewLink}</Link>
         )}
       </FieldDescription>
     </div>

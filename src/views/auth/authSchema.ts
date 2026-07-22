@@ -1,36 +1,52 @@
 import { z } from 'zod'
 
-export const authSchema = z.object({
-  email: z.email('Email tidak valid').trim().toLowerCase(),
-  password: z.string().min(8, 'Password minimal 8 karakter').max(128, 'Password terlalu panjang'),
-})
+import type { Dictionary } from '@/i18n/dictionary.types'
 
-export const registerSchema = authSchema.extend({
-  name: z.string().min(2, 'Nama minimal 2 karakter').max(128, 'Nama terlalu panjang'),
-  email: z.email('Email tidak valid').trim().toLowerCase(),
-  password: z.string().min(8, 'Password minimal 8 karakter').max(128, 'Password terlalu panjang'),
-  confirmPassword: z.string().min(8, 'Password minimal 8 karakter').max(128, 'Password terlalu panjang'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Password dan confirm password tidak cocok',
-  path: ['confirmPassword'],
-})
+type ValidationMessages = Dictionary["auth"]["validation"]
 
-export const forgotPasswordSchema = z.object({
-  email: z.email('Email tidak valid').trim().toLowerCase(),
-})
+export function createAuthSchema(messages: ValidationMessages) {
+  return z.object({
+    email: z.email(messages.emailInvalid).trim().toLowerCase(),
+    password: z.string().min(8, messages.passwordMin).max(128, messages.passwordMax),
+  })
+}
 
-export const resetPasswordSchema = z.object({
-  email: z.email('Email tidak valid').trim().toLowerCase(),
-  token: z.string().regex(/^[a-f0-9]{64}$/, 'Token reset tidak valid'),
-  password: z.string().min(8, 'Password minimal 8 karakter').max(128, 'Password terlalu panjang'),
-  confirmPassword: z.string().min(8, 'Password minimal 8 karakter').max(128, 'Password terlalu panjang'),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: 'Password dan confirm password tidak cocok',
-  path: ['confirmPassword'],
-})
+export function createRegisterSchema(messages: ValidationMessages) {
+  return createAuthSchema(messages)
+    .extend({
+      name: z.string().min(2, messages.nameMin).max(128, messages.nameMax),
+      email: z.email(messages.emailInvalid).trim().toLowerCase(),
+      password: z.string().min(8, messages.passwordMin).max(128, messages.passwordMax),
+      confirmPassword: z.string().min(8, messages.passwordMin).max(128, messages.passwordMax),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: messages.passwordMismatch,
+      path: ['confirmPassword'],
+    })
+}
 
-export type AuthFormData = z.infer<typeof authSchema>
-export type RegisterFormData = z.infer<typeof registerSchema>
-export type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>
-export type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>
+export function createForgotPasswordSchema(messages: ValidationMessages) {
+  return z.object({
+    email: z.email(messages.emailInvalid).trim().toLowerCase(),
+  })
+}
+
+export function createResetPasswordSchema(messages: ValidationMessages) {
+  return z
+    .object({
+      email: z.email(messages.emailInvalid).trim().toLowerCase(),
+      token: z.string().regex(/^[a-f0-9]{64}$/, messages.tokenInvalid),
+      password: z.string().min(8, messages.passwordMin).max(128, messages.passwordMax),
+      confirmPassword: z.string().min(8, messages.passwordMin).max(128, messages.passwordMax),
+    })
+    .refine((data) => data.password === data.confirmPassword, {
+      message: messages.passwordMismatch,
+      path: ['confirmPassword'],
+    })
+}
+
+export type AuthFormData = z.infer<ReturnType<typeof createAuthSchema>>
+export type RegisterFormData = z.infer<ReturnType<typeof createRegisterSchema>>
+export type ForgotPasswordFormData = z.infer<ReturnType<typeof createForgotPasswordSchema>>
+export type ResetPasswordFormData = z.infer<ReturnType<typeof createResetPasswordSchema>>
 export type AuthMode = 'login' | 'register'

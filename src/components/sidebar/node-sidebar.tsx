@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useParams, useRouter } from "next/navigation";
 import {
   BookHeart,
   CalendarDaysIcon,
@@ -16,7 +16,7 @@ import {
   createNode,
   reorderNode,
 } from "@/services/node";
-import { isBookCollectionNode } from "@/lib/book-node";
+import { excludeBookNodes } from "@/lib/book-node";
 
 import {
   SidebarGroup,
@@ -31,6 +31,9 @@ import { NodeTreeItem } from "./node-tree-item";
 import RenameNodeDialog from "./rename-node-dialog";
 import MoveDialog from "./move-dialog";
 import DeleteDialog from "./delete-dialog";
+import { useDictionary } from "@/i18n/dictionary-context";
+import { localeHref, stripLocale } from "@/i18n/paths";
+import type { Locale } from "@/i18n/config";
 
 export const ROOT_PARENT_VALUE = "__root__";
 
@@ -56,32 +59,6 @@ function sortNodeTree(nodes: NodeWithChildren[]) {
   }
 
   return nodes;
-}
-
-function excludeBookNodes(nodes: Node[]): Node[] {
-  const nodesById = new Map(nodes.map((node) => [node.id, node]));
-  const bookNodeIds = new Set<string>();
-
-  for (const node of nodes) {
-    if (isBookCollectionNode(node)) {
-      bookNodeIds.add(node.id);
-    }
-  }
-
-  for (const node of nodes) {
-    let current = node.parentId ? nodesById.get(node.parentId) : undefined;
-
-    while (current) {
-      if (bookNodeIds.has(current.id)) {
-        bookNodeIds.add(node.id);
-        break;
-      }
-
-      current = current.parentId ? nodesById.get(current.parentId) : undefined;
-    }
-  }
-
-  return nodes.filter((node) => !bookNodeIds.has(node.id));
 }
 
 function buildNodeTree(nodes: Node[]): NodeWithChildren[] {
@@ -116,7 +93,10 @@ export function NodeSidebar({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { lang } = useParams<{ lang: Locale }>();
+  const dict = useDictionary();
   const [isPending, startTransition] = React.useTransition();
+  const { path: strippedPath } = stripLocale(pathname);
 
   const [nodeToRename, setNodeToRename] =
     React.useState<NodeWithChildren | null>(null);
@@ -143,7 +123,7 @@ export function NodeSidebar({
       const result = await createNode({ workspaceId, parentId, type });
 
       if (result.node) {
-        router.push(`/home/${result.node.id}`);
+        router.push(localeHref(`/home/${result.node.id}`, lang));
         router.refresh();
       }
     });
@@ -171,26 +151,26 @@ export function NodeSidebar({
       <SidebarGroup>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === "/home"}>
-              <Link href="/home">
+            <SidebarMenuButton asChild isActive={strippedPath === "/home"}>
+              <Link href={localeHref("/home", lang)}>
                 <HomeIcon />
-                <span>Beranda</span>
+                <span>{dict.nav.home}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === "/book"}>
-              <Link href="/book">
+            <SidebarMenuButton asChild isActive={strippedPath === "/book"}>
+              <Link href={localeHref("/book", lang)}>
                 <BookHeart />
-                <span>Book</span>
+                <span>{dict.nav.book}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === "/calendar"}>
-              <Link href="/calendar">
+            <SidebarMenuButton asChild isActive={strippedPath === "/calendar"}>
+              <Link href={localeHref("/calendar", lang)}>
                 <CalendarDaysIcon />
-                <span>Kalender</span>
+                <span>{dict.nav.calendar}</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -198,7 +178,7 @@ export function NodeSidebar({
       </SidebarGroup>
 
       <SidebarGroup className="group-data-[collapsible=icon]:hidden">
-        <SidebarGroupLabel>Page</SidebarGroupLabel>
+        <SidebarGroupLabel>{dict.nav.pages}</SidebarGroupLabel>
         {canEdit && (
           <>
             <SidebarGroupAction
@@ -206,20 +186,20 @@ export function NodeSidebar({
               disabled={isPending}
               onClick={() => handleCreate(NodeType.FOLDER)}
               className="right-9 cursor-pointer"
-              title="Add folder"
+              title={dict.sidebar.addFolder}
             >
               <FolderPlusIcon />
-              <span className="sr-only">Add folder</span>
+              <span className="sr-only">{dict.sidebar.addFolder}</span>
             </SidebarGroupAction>
             <SidebarGroupAction
               type="button"
               disabled={isPending}
               onClick={() => handleCreate(NodeType.PAGE)}
-              title="Add page"
+              title={dict.sidebar.addPage}
               className="cursor-pointer"
             >
               <FilePlus2Icon />
-              <span className="sr-only">Add page</span>
+              <span className="sr-only">{dict.sidebar.addPage}</span>
             </SidebarGroupAction>
           </>
         )}
@@ -252,7 +232,7 @@ export function NodeSidebar({
           ))}
           {tree.length === 0 && (
             <li className="px-2 py-1 text-xs text-muted-foreground">
-              No pages yet
+              {dict.sidebar.noPagesYet}
             </li>
           )}
         </SidebarMenu>

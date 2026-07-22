@@ -13,6 +13,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { Button } from '../ui/button';
+import { useDictionary } from '@/i18n/dictionary-context';
 
 interface MoveDialogProps {
     isPending: boolean
@@ -72,6 +73,8 @@ function collectNodeIds(node: NodeWithChildren, nodeIds = new Set<string>()) {
 
 const MoveDialog: React.FC<MoveDialogProps> = ({ tree, moveError, workspaceId, moveTargetParentId, isPending, nodeToMove, setNodeToMove, setMoveTargetParentId, setMoveError }) => {
     const router = useRouter();
+    const dict = useDictionary();
+    const isFolder = nodeToMove?.type === NodeType.FOLDER;
 
     const moveTargetOptions = React.useMemo(() => {
         if (!nodeToMove) return [];
@@ -125,14 +128,10 @@ const MoveDialog: React.FC<MoveDialogProps> = ({ tree, moveError, workspaceId, m
                 <form onSubmit={handleMoveNode}>
                     <DialogHeader>
                         <DialogTitle>
-                            Move {nodeToMove?.type === NodeType.FOLDER ? "folder" : "page"}
+                            {isFolder ? dict.dialogs.move.titleFolder : dict.dialogs.move.titlePage}
                         </DialogTitle>
                         <DialogDescription>
-                            Choose where to place this{" "}
-                            {nodeToMove?.type === NodeType.FOLDER ? "folder" : "page"}.
-                            {nodeToMove?.type === NodeType.FOLDER
-                                ? " All child pages and folders will move with it."
-                                : ""}
+                            {isFolder ? dict.dialogs.move.descriptionFolder : dict.dialogs.move.descriptionPage}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -143,11 +142,11 @@ const MoveDialog: React.FC<MoveDialogProps> = ({ tree, moveError, workspaceId, m
                             disabled={isPending}
                         >
                             <SelectTrigger className="w-full">
-                                <SelectValue placeholder="Choose destination" />
+                                <SelectValue placeholder={dict.dialogs.move.chooseDestination} />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value={ROOT_PARENT_VALUE}>
-                                    Top level
+                                    {dict.dialogs.move.topLevel}
                                 </SelectItem>
                                 {moveTargetOptions.map((option) => (
                                     <SelectItem key={option.id} value={option.id}>
@@ -165,11 +164,11 @@ const MoveDialog: React.FC<MoveDialogProps> = ({ tree, moveError, workspaceId, m
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button type="button" variant="outline" disabled={isPending}>
-                                Cancel
+                                {dict.dialogs.move.cancel}
                             </Button>
                         </DialogClose>
                         <Button type="submit" disabled={isPending}>
-                            {isPending ? "Moving..." : "Move"}
+                            {isPending ? dict.dialogs.move.moving : dict.dialogs.move.move}
                         </Button>
                     </DialogFooter>
                 </form>

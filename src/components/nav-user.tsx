@@ -2,6 +2,7 @@
 
 import { signOut } from "next-auth/react"
 import Link from "next/link"
+import { useParams } from "next/navigation"
 import {
   Avatar,
   AvatarFallback,
@@ -24,6 +25,10 @@ import {
 } from "@/components/ui/sidebar"
 import { BadgeCheckIcon, ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
 import { User } from "next-auth"
+import { useDictionary } from "@/i18n/dictionary-context"
+import { localeHref } from "@/i18n/paths"
+import type { Locale } from "@/i18n/config"
+import { LanguageSwitcher } from "@/components/language-switcher"
 
 export function NavUser({
   user,
@@ -31,6 +36,8 @@ export function NavUser({
   user: User
 }) {
   const { isMobile } = useSidebar()
+  const { lang } = useParams<{ lang: Locale }>()
+  const dict = useDictionary()
 
   return (
     <SidebarMenu>
@@ -71,41 +78,28 @@ export function NavUser({
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            {/* <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <SparklesIcon
-                />
-                Upgrade to Pro
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator /> */}
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
-                <Link href="/account">
+                <Link href={localeHref("/account", lang)}>
                   <BadgeCheckIcon />
-                  Account
+                  {dict.nav.account}
                 </Link>
               </DropdownMenuItem>
-              {/* <DropdownMenuItem>
-                <CreditCardIcon
-                />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <BellIcon
-                />
-                Notifications
-              </DropdownMenuItem> */}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
+            <div className="flex items-center justify-between px-2 py-1.5 text-sm">
+              <span className="text-muted-foreground">{dict.nav.language}</span>
+              <LanguageSwitcher />
+            </div>
+            <DropdownMenuSeparator />
             <form action={async () => {
-              await signOut({ redirectTo: "/" })
+              await signOut({ redirectTo: localeHref("/", lang) })
             }}>
               <DropdownMenuItem className="cursor-pointer" asChild>
                 <button type="submit" className="w-full">
                   <LogOutIcon
                   />
-                  Log out
+                  {dict.nav.logout}
                 </button>
               </DropdownMenuItem>
             </form>

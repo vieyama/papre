@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import {
@@ -28,6 +28,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { useDictionary } from "@/i18n/dictionary-context";
+import { localeHref } from "@/i18n/paths";
+import { formatMessage } from "@/i18n/format";
+import type { Locale } from "@/i18n/config";
 
 type CalendarWorkspace = {
   id: string;
@@ -48,7 +52,9 @@ type CreatePageForm = {
   title: string;
 };
 
-const WEEKDAYS = ["Sen", "Sel", "Rab", "Kam", "Jum", "Sab", "Min"];
+function intlLocale(locale: Locale) {
+  return locale === "id" ? "id-ID" : "en-US";
+}
 
 function dateKey(date: Date) {
   const year = date.getUTCFullYear();
@@ -62,16 +68,16 @@ function dateFromKey(value: string) {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
-function monthLabel(date: Date) {
-  return new Intl.DateTimeFormat("id-ID", {
+function monthLabel(date: Date, locale: Locale) {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     month: "long",
     year: "numeric",
     timeZone: "UTC",
   }).format(date);
 }
 
-function longDateLabel(value: string) {
-  return new Intl.DateTimeFormat("id-ID", {
+function longDateLabel(value: string, locale: Locale) {
+  return new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -102,6 +108,8 @@ export function WorkspaceCalendar({
   pages: CalendarPageItem[];
 }) {
   const router = useRouter();
+  const { lang } = useParams<{ lang: Locale }>();
+  const dict = useDictionary();
   const { selectedWorkspace, hasHydrated } = useWorkspaceStore();
   const today = React.useMemo(() => {
     const now = new Date();
@@ -145,7 +153,7 @@ export function WorkspaceCalendar({
   const createPageMutation = useMutation({
     mutationFn: async ({ title }: CreatePageForm) => {
       if (!activeWorkspace) {
-        throw new Error("Workspace tidak ditemukan.");
+        throw new Error(dict.calendar.workspaceNotFound);
       }
 
       const result = await createNode({
@@ -208,9 +216,9 @@ export function WorkspaceCalendar({
       <div className="flex min-h-[60vh] items-center justify-center px-6 text-center">
         <div>
           <CalendarDaysIcon className="mx-auto size-10 text-muted-foreground" />
-          <h1 className="mt-4 text-xl font-semibold">Belum ada workspace</h1>
+          <h1 className="mt-4 text-xl font-semibold">{dict.calendar.noWorkspaceTitle}</h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Buat workspace terlebih dahulu untuk menggunakan kalender.
+            {dict.calendar.noWorkspaceDescription}
           </p>
         </div>
       </div>
@@ -226,16 +234,15 @@ export function WorkspaceCalendar({
             <span>{activeWorkspace.name}</span>
           </div>
           <h1 className="mt-1 text-3xl font-semibold tracking-tight">
-            Kalender
+            {dict.calendar.title}
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Atur page berdasarkan tanggal dan buka kembali catatanmu dengan
-            cepat.
+            {dict.calendar.description}
           </p>
         </div>
         {canEdit && <Button onClick={() => openCreateDialog()}>
           <PlusIcon />
-          Tambah page
+          {dict.calendar.addPage}
         </Button>}
       </div>
 
@@ -248,7 +255,7 @@ export function WorkspaceCalendar({
                 variant="outline"
                 size="icon-sm"
                 onClick={() => changeMonth(-1)}
-                aria-label="Bulan sebelumnya"
+                aria-label={dict.calendar.prevMonth}
               >
                 <ChevronLeftIcon />
               </Button>
@@ -257,21 +264,21 @@ export function WorkspaceCalendar({
                 variant="outline"
                 size="icon-sm"
                 onClick={() => changeMonth(1)}
-                aria-label="Bulan berikutnya"
+                aria-label={dict.calendar.nextMonth}
               >
                 <ChevronRightIcon />
               </Button>
               <Button type="button" variant="ghost" size="sm" onClick={goToToday}>
-                Hari ini
+                {dict.calendar.today}
               </Button>
             </div>
             <h2 className="text-lg font-semibold capitalize">
-              {monthLabel(visibleMonth)}
+              {monthLabel(visibleMonth, lang)}
             </h2>
           </div>
 
           <div className="grid grid-cols-7 border-b bg-muted/30">
-            {WEEKDAYS.map((weekday) => (
+            {dict.calendar.weekdaysShort.map((weekday) => (
               <div
                 key={weekday}
                 className="px-2 py-2 text-center text-xs font-medium text-muted-foreground"
@@ -325,7 +332,7 @@ export function WorkspaceCalendar({
                       ))}
                       {dayPages.length > 2 && (
                         <span className="block px-1 text-[11px] text-muted-foreground">
-                          +{dayPages.length - 2} page lainnya
+                          {formatMessage(dict.calendar.morePages, { count: dayPages.length - 2 })}
                         </span>
                       )}
                     </div>
@@ -338,10 +345,10 @@ export function WorkspaceCalendar({
 
         <aside className="h-fit rounded-2xl border bg-card p-5 xl:sticky xl:top-6">
           <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-            Tanggal terpilih
+            {dict.calendar.selectedDateLabel}
           </p>
           <h2 className="mt-2 text-lg font-semibold capitalize">
-            {longDateLabel(selectedDate)}
+            {longDateLabel(selectedDate, lang)}
           </h2>
           {canEdit && <Button
             className="mt-4 w-full"
@@ -349,7 +356,7 @@ export function WorkspaceCalendar({
             onClick={() => openCreateDialog()}
           >
             <FilePlus2Icon />
-            Tambah page di tanggal ini
+            {dict.calendar.addPageForDate}
           </Button>}
 
           <div className="mt-5 border-t pt-5">
@@ -358,7 +365,7 @@ export function WorkspaceCalendar({
                 {selectedPages.map((page) => (
                   <Link
                     key={page.id}
-                    href={`/home/${page.id}`}
+                    href={localeHref(`/home/${page.id}`, lang)}
                     className="flex items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted"
                   >
                     <span className="flex size-8 items-center justify-center rounded-md bg-muted text-lg">
@@ -374,7 +381,7 @@ export function WorkspaceCalendar({
               <div className="py-6 text-center">
                 <CalendarDaysIcon className="mx-auto size-8 text-muted-foreground/60" />
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Belum ada page pada tanggal ini.
+                  {dict.calendar.emptyForDate}
                 </p>
               </div>
             )}
@@ -392,25 +399,27 @@ export function WorkspaceCalendar({
         <DialogContent>
           <form onSubmit={form.handleSubmit((values) => createPageMutation.mutate(values))}>
             <DialogHeader>
-              <DialogTitle>Tambah page kalender</DialogTitle>
+              <DialogTitle>{dict.calendar.dialogTitle}</DialogTitle>
               <DialogDescription className="capitalize">
-                Page akan ditambahkan pada {longDateLabel(selectedDate)}.
+                {formatMessage(dict.calendar.dialogDescription, {
+                  date: longDateLabel(selectedDate, lang),
+                })}
               </DialogDescription>
             </DialogHeader>
 
             <div className="my-6 space-y-2">
-              <Label htmlFor="calendar-page-title">Judul page</Label>
+              <Label htmlFor="calendar-page-title">{dict.calendar.titleLabel}</Label>
               <Input
                 id="calendar-page-title"
-                placeholder="Contoh: Catatan meeting"
+                placeholder={dict.calendar.titlePlaceholder}
                 autoFocus
                 maxLength={100}
                 disabled={createPageMutation.isPending}
                 aria-invalid={Boolean(form.formState.errors.title)}
                 {...form.register("title", {
-                  required: "Judul page wajib diisi.",
+                  required: dict.calendar.titleRequired,
                   validate: (value) =>
-                    value.trim().length > 0 || "Judul page wajib diisi.",
+                    value.trim().length > 0 || dict.calendar.titleRequired,
                 })}
               />
               {form.formState.errors.title?.message && (
@@ -432,10 +441,10 @@ export function WorkspaceCalendar({
                 disabled={createPageMutation.isPending}
                 onClick={() => setIsCreateOpen(false)}
               >
-                Batal
+                {dict.common.cancel}
               </Button>
               <Button type="submit" disabled={createPageMutation.isPending}>
-                {createPageMutation.isPending ? "Membuat..." : "Buat page"}
+                {createPageMutation.isPending ? dict.calendar.submitPending : dict.calendar.submit}
               </Button>
             </DialogFooter>
           </form>

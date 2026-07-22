@@ -1,7 +1,7 @@
 "use client";
 
 import { useMutation } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { FilePlus2Icon, FolderPlusIcon } from "lucide-react";
 
 import { NodeType } from "@/generated/prisma/browser";
@@ -11,6 +11,9 @@ import {
   NodeCollectionView,
   type NodeCollectionItem,
 } from "@/components/node-collection-view";
+import { useDictionary } from "@/i18n/dictionary-context";
+import { localeHref } from "@/i18n/paths";
+import type { Locale } from "@/i18n/config";
 
 export function FolderChildrenList({
   folderId,
@@ -24,6 +27,8 @@ export function FolderChildrenList({
   editable?: boolean;
 }) {
   const router = useRouter();
+  const { lang } = useParams<{ lang: Locale }>();
+  const dict = useDictionary();
   const createMutation = useMutation({
     mutationFn: async (type: NodeType) => {
       const result = await createNode({
@@ -33,19 +38,19 @@ export function FolderChildrenList({
       });
 
       if (result.error || !result.node) {
-        throw new Error(result.error ?? "Failed to create node.");
+        throw new Error(result.error ?? dict.folderChildren.createError);
       }
 
       return result.node;
     },
     onSuccess: (node) => {
-      router.push(`/home/${node.id}`);
+      router.push(localeHref(`/home/${node.id}`, lang));
       router.refresh();
     },
   });
 
   return (
-    <div className="mt-10">
+    <div className="mt-2 min-[830px]:mt-6">
       {createMutation.error && (
         <p className="mb-3 text-sm text-destructive">
           {createMutation.error.message}
@@ -54,9 +59,9 @@ export function FolderChildrenList({
 
       <NodeCollectionView
         items={nodes}
-        getHref={(item) => `/home/${item.id}`}
-        title="Inside this folder"
-        description="Pages and folders nested inside this one."
+        getHref={(item) => localeHref(`/home/${item.id}`, lang)}
+        title={dict.folderChildren.title}
+        description={dict.folderChildren.description}
         actions={
           editable && (
             <>
@@ -67,7 +72,7 @@ export function FolderChildrenList({
                 onClick={() => createMutation.mutate(NodeType.PAGE)}
               >
                 <FilePlus2Icon />
-                New page
+                {dict.folderChildren.newPage}
               </Button>
               <Button
                 type="button"
@@ -77,13 +82,13 @@ export function FolderChildrenList({
                 onClick={() => createMutation.mutate(NodeType.FOLDER)}
               >
                 <FolderPlusIcon />
-                New folder
+                {dict.folderChildren.newFolder}
               </Button>
             </>
           )
         }
-        emptyTitle="This folder is empty"
-        emptyDescription="Add a page or folder to start organizing content here."
+        emptyTitle={dict.folderChildren.emptyTitle}
+        emptyDescription={dict.folderChildren.emptyDescription}
         emptyAction={
           editable && (
             <Button
@@ -93,7 +98,7 @@ export function FolderChildrenList({
               onClick={() => createMutation.mutate(NodeType.PAGE)}
             >
               <FilePlus2Icon />
-              Add a page
+              {dict.folderChildren.addPage}
             </Button>
           )
         }

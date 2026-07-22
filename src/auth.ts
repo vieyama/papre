@@ -4,7 +4,10 @@ import Google from "next-auth/providers/google"
 import { authConfig } from "@/lib/auth.config"
 import { PrismaAdapter } from "@auth/prisma-adapter"
 import { verifyPassword } from "@/lib/password"
-import { authSchema } from "@/views/auth/authSchema"
+import { createAuthSchema } from "@/views/auth/authSchema"
+import en from "@/i18n/dictionaries/en"
+
+const authSchema = createAuthSchema(en.auth.validation)
 import prisma from "./lib/prisma"
 import { ensureUserSetup } from "./lib/user-setup"
 
@@ -67,7 +70,6 @@ export const { handlers, signIn, signOut, auth, unstable_update } = NextAuth({
         },
     },
     callbacks: {
-        ...authConfig.callbacks,
         async signIn({ account, profile }) {
             if (account?.provider === "google") {
                 return profile?.email_verified === true

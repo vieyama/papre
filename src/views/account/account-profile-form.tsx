@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateAccountProfile } from "@/services/account";
+import { useDictionary } from "@/i18n/dictionary-context";
 
 export function AccountProfileForm({
   initialName,
@@ -16,6 +17,7 @@ export function AccountProfileForm({
   email: string;
 }) {
   const router = useRouter();
+  const dict = useDictionary();
   const [name, setName] = useState(initialName);
   const [savedName, setSavedName] = useState(initialName);
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export function AccountProfileForm({
       const updatedName = result.name ?? name.trim();
       setName(updatedName);
       setSavedName(updatedName);
-      setMessage("Profil berhasil diperbarui.");
+      setMessage(dict.account.profileUpdated);
       router.refresh();
     });
   }
@@ -46,7 +48,7 @@ export function AccountProfileForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
       <div className="space-y-2">
-        <Label htmlFor="account-name">Full name</Label>
+        <Label htmlFor="account-name">{dict.account.fullNameLabel}</Label>
         <Input
           id="account-name"
           value={name}
@@ -57,15 +59,15 @@ export function AccountProfileForm({
           required
         />
         <p className="text-xs text-muted-foreground">
-          This name is shown in your workspace and account menu.
+          {dict.account.fullNameHint}
         </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="account-email">Email</Label>
+        <Label htmlFor="account-email">{dict.account.emailLabel}</Label>
         <Input id="account-email" value={email} readOnly disabled />
         <p className="text-xs text-muted-foreground">
-          Your email is managed by your sign-in method and cannot be changed here.
+          {dict.account.emailHint}
         </p>
       </div>
 
@@ -91,7 +93,7 @@ export function AccountProfileForm({
         type="submit"
         disabled={isPending || name.trim() === savedName}
       >
-        {isPending ? "Saving..." : "Save changes"}
+        {isPending ? dict.account.saving : dict.account.saveChanges}
       </Button>
     </form>
   );

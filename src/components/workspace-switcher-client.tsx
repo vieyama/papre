@@ -45,7 +45,7 @@ import {
     Trash2Icon,
     UsersIcon,
 } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useParams, useRouter } from "next/navigation"
 import {
     createWorkspace,
     deleteWorkspace,
@@ -57,6 +57,10 @@ import {
 import { useWorkspaceStore } from "@/stores/workspace"
 import { WorkspaceRole, type Workspace } from "@/generated/prisma/browser"
 import { WorkspaceMembersDialog } from "@/components/workspace-members-dialog"
+import { useDictionary } from "@/i18n/dictionary-context"
+import { localeHref } from "@/i18n/paths"
+import { formatMessage } from "@/i18n/format"
+import type { Locale } from "@/i18n/config"
 
 export type WorkspaceWithAccess = Workspace & {
     currentUserRole: WorkspaceRole
@@ -89,6 +93,8 @@ export function WorkspaceSwitcherClient({
 }) {
     const { isMobile } = useSidebar()
     const router = useRouter()
+    const { lang } = useParams<{ lang: Locale }>()
+    const dict = useDictionary()
     const { selectedWorkspace, hasHydrated, setSelectedWorkspace } = useWorkspaceStore()
     const [isDialogOpen, setIsDialogOpen] = React.useState(false)
     const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false)
@@ -121,7 +127,7 @@ export function WorkspaceSwitcherClient({
 
     const [editFormState, editFormAction] = React.useActionState<UpdateWorkspaceResult, FormData>(
         async (_, formData) => {
-            if (!activeWorkspace) return { error: "Workspace not found." }
+            if (!activeWorkspace) return { error: dict.dialogs.workspace.notFoundError }
 
             const name = formData.get("name") as string
             const icon = (formData.get("icon") as string) || "🏠"
@@ -148,7 +154,7 @@ export function WorkspaceSwitcherClient({
 
     const [deleteFormState, deleteFormAction] = React.useActionState<DeleteWorkspaceResult, FormData>(
         async () => {
-            if (!activeWorkspace) return { error: "Workspace not found." }
+            if (!activeWorkspace) return { error: dict.dialogs.workspace.notFoundError }
 
             const result = await deleteWorkspace({
                 workspaceId: activeWorkspace.id,
@@ -157,7 +163,7 @@ export function WorkspaceSwitcherClient({
             if (result.success) {
                 setSelectedWorkspace(null)
                 setIsDeleteDialogOpen(false)
-                router.replace("/home")
+                router.replace(localeHref("/home", lang))
                 router.refresh()
             }
 
@@ -170,7 +176,7 @@ export function WorkspaceSwitcherClient({
         if (workspace.id === activeWorkspace?.id) return
 
         setSelectedWorkspace(workspace)
-        router.replace("/home")
+        router.replace(localeHref("/home", lang))
     }
 
     function handleEmojiClick(emojiData: EmojiClickData) {
@@ -229,11 +235,11 @@ export function WorkspaceSwitcherClient({
                                 </div>
                                 <div className="grid flex-1 text-left text-sm leading-tight">
                                     <span className="truncate font-medium">
-                                        {!hasHydrated ? "Loading..." : activeWorkspace?.name}</span>
+                                        {!hasHydrated ? dict.dialogs.workspace.loading : activeWorkspace?.name}</span>
                                     <span className="truncate text-xs">
                                         {activeWorkspace?.memberCount > 1
-                                            ? `${activeWorkspace?.memberCount} members`
-                                            : "Personal"}
+                                            ? formatMessage(dict.dialogs.workspace.membersCount, { count: activeWorkspace.memberCount })
+                                            : dict.dialogs.workspace.personal}
                                     </span>
                                 </div>
                                 <ChevronsUpDownIcon className="ml-auto" />
@@ -247,7 +253,7 @@ export function WorkspaceSwitcherClient({
                             sideOffset={4}
                         >
                             <DropdownMenuLabel className="text-xs text-muted-foreground">
-                                Workspaces
+                                {dict.dialogs.workspace.workspacesLabel}
                             </DropdownMenuLabel>
 
                             {workspaces.map((workspace, index) => (
@@ -276,7 +282,7 @@ export function WorkspaceSwitcherClient({
                                             <PencilIcon className="size-4" />
                                         </div>
                                         <div className="font-medium text-muted-foreground">
-                                            Edit workspace
+                                            {dict.dialogs.workspace.editWorkspace}
                                         </div>
                                     </DropdownMenuItem>
 
@@ -288,7 +294,7 @@ export function WorkspaceSwitcherClient({
                                             <UsersIcon className="size-4" />
                                         </div>
                                         <div className="font-medium text-muted-foreground">
-                                            Manage members
+                                            {dict.dialogs.workspace.manageMembers}
                                         </div>
                                     </DropdownMenuItem>
                                 </>
@@ -304,7 +310,7 @@ export function WorkspaceSwitcherClient({
                                         <Trash2Icon className="size-4" />
                                     </div>
                                     <div className="font-medium">
-                                        Delete workspace
+                                        {dict.dialogs.workspace.deleteWorkspace}
                                     </div>
                                 </DropdownMenuItem>
                             )}
@@ -313,7 +319,7 @@ export function WorkspaceSwitcherClient({
                                 <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
                                     <PlusIcon className="size-4" />
                                 </div>
-                                <div className="font-medium text-muted-foreground">Add workspace</div>
+                                <div className="font-medium text-muted-foreground">{dict.dialogs.workspace.addWorkspace}</div>
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -323,26 +329,26 @@ export function WorkspaceSwitcherClient({
             <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Create new workspace</DialogTitle>
+                        <DialogTitle>{dict.dialogs.workspace.createTitle}</DialogTitle>
                         <DialogDescription>
-                            Add a new workspace to organize your work.
+                            {dict.dialogs.workspace.createDescription}
                         </DialogDescription>
                     </DialogHeader>
 
                     <form action={formAction} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Workspace name</Label>
+                            <Label htmlFor="name">{dict.dialogs.workspace.nameLabel}</Label>
                             <Input
                                 id="name"
                                 name="name"
-                                placeholder="My workspace"
+                                placeholder={dict.dialogs.workspace.namePlaceholder}
                                 required
                                 autoFocus
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="workspace-icon-picker">Icon (optional)</Label>
+                            <Label htmlFor="workspace-icon-picker">{dict.dialogs.workspace.iconLabel}</Label>
                             <input
                                 name="icon"
                                 type="hidden"
@@ -358,7 +364,7 @@ export function WorkspaceSwitcherClient({
                                         type="button"
                                         variant="outline"
                                         className="size-12 p-0 text-2xl"
-                                        aria-label="Choose workspace icon"
+                                        aria-label={dict.dialogs.workspace.chooseIconAria}
                                     >
                                         {workspaceIcon}
                                     </Button>
@@ -385,10 +391,10 @@ export function WorkspaceSwitcherClient({
 
                         <DialogFooter>
                             <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
+                                <Button variant="outline">{dict.dialogs.workspace.cancel}</Button>
                             </DialogClose>
-                            <SubmitButton pendingLabel="Creating...">
-                                Create workspace
+                            <SubmitButton pendingLabel={dict.dialogs.workspace.creating}>
+                                {dict.dialogs.workspace.create}
                             </SubmitButton>
                         </DialogFooter>
                     </form>
@@ -398,27 +404,27 @@ export function WorkspaceSwitcherClient({
             <Dialog open={isEditDialogOpen} onOpenChange={handleEditDialogOpenChange}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Edit workspace</DialogTitle>
+                        <DialogTitle>{dict.dialogs.workspace.editTitle}</DialogTitle>
                         <DialogDescription>
-                            Update the workspace name and icon.
+                            {dict.dialogs.workspace.editDescription}
                         </DialogDescription>
                     </DialogHeader>
 
                     <form action={editFormAction} className="space-y-4">
                         <div className="space-y-2">
-                            <Label htmlFor="edit-workspace-name">Workspace name</Label>
+                            <Label htmlFor="edit-workspace-name">{dict.dialogs.workspace.nameLabel}</Label>
                             <Input
                                 id="edit-workspace-name"
                                 name="name"
                                 defaultValue={activeWorkspace?.name ?? ""}
-                                placeholder="My workspace"
+                                placeholder={dict.dialogs.workspace.namePlaceholder}
                                 required
                                 autoFocus
                             />
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="edit-workspace-icon-picker">Icon (optional)</Label>
+                            <Label htmlFor="edit-workspace-icon-picker">{dict.dialogs.workspace.iconLabel}</Label>
                             <input
                                 name="icon"
                                 type="hidden"
@@ -434,7 +440,7 @@ export function WorkspaceSwitcherClient({
                                         type="button"
                                         variant="outline"
                                         className="size-12 p-0 text-2xl"
-                                        aria-label="Choose workspace icon"
+                                        aria-label={dict.dialogs.workspace.chooseIconAria}
                                     >
                                         {editWorkspaceIcon}
                                     </Button>
@@ -461,10 +467,10 @@ export function WorkspaceSwitcherClient({
 
                         <DialogFooter>
                             <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
+                                <Button variant="outline">{dict.dialogs.workspace.cancel}</Button>
                             </DialogClose>
-                            <SubmitButton pendingLabel="Saving...">
-                                Save changes
+                            <SubmitButton pendingLabel={dict.dialogs.workspace.saving}>
+                                {dict.dialogs.workspace.saveChanges}
                             </SubmitButton>
                         </DialogFooter>
                     </form>
@@ -474,10 +480,11 @@ export function WorkspaceSwitcherClient({
             <Dialog open={isDeleteDialogOpen} onOpenChange={handleDeleteDialogOpenChange}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Delete workspace</DialogTitle>
+                        <DialogTitle>{dict.dialogs.workspace.deleteTitle}</DialogTitle>
                         <DialogDescription>
-                            This will permanently delete {activeWorkspace?.name} and all
-                            pages, folders, and members inside it.
+                            {formatMessage(dict.dialogs.workspace.deleteDescription, {
+                                name: activeWorkspace?.name ?? "",
+                            })}
                         </DialogDescription>
                     </DialogHeader>
 
@@ -488,10 +495,10 @@ export function WorkspaceSwitcherClient({
 
                         <DialogFooter>
                             <DialogClose asChild>
-                                <Button variant="outline">Cancel</Button>
+                                <Button variant="outline">{dict.dialogs.workspace.cancel}</Button>
                             </DialogClose>
-                            <SubmitButton pendingLabel="Deleting..." variant="destructive">
-                                Delete workspace
+                            <SubmitButton pendingLabel={dict.dialogs.workspace.deleting} variant="destructive">
+                                {dict.dialogs.workspace.deleteWorkspace}
                             </SubmitButton>
                         </DialogFooter>
                     </form>

@@ -34,6 +34,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "./ui/native-select";
+import { useDictionary } from "@/i18n/dictionary-context";
+import { formatMessage } from "@/i18n/format";
 
 type InviteForm = {
   email: string;
@@ -46,6 +48,7 @@ export function PageShareDialog({
   nodeId: string;
   workspaceId: string;
 }) {
+  const dict = useDictionary();
   const queryClient = useQueryClient();
   const [open, setOpen] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
@@ -163,7 +166,7 @@ export function PageShareDialog({
     <>
       <Button type="button" variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Share2Icon />
-        Share
+        {dict.dialogs.share.shareButton}
       </Button>
 
       <Dialog
@@ -179,10 +182,9 @@ export function PageShareDialog({
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Share page</DialogTitle>
+            <DialogTitle>{dict.dialogs.share.title}</DialogTitle>
             <DialogDescription>
-              Bagikan page hanya kepada user tertentu atau siapa pun yang
-              memiliki link.
+              {dict.dialogs.share.description}
             </DialogDescription>
           </DialogHeader>
 
@@ -201,17 +203,16 @@ export function PageShareDialog({
           {!shareQuery.isLoading && !shareQuery.error && !share && (
             <div className="rounded-xl border border-dashed px-5 py-8 text-center">
               <LinkIcon className="mx-auto size-8 text-muted-foreground" />
-              <h3 className="mt-3 font-medium">Page belum dibagikan</h3>
+              <h3 className="mt-3 font-medium">{dict.dialogs.share.pageNotShared}</h3>
               <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-                Buat link private terlebih dahulu. Kamu dapat mengubahnya
-                menjadi public kapan saja.
+                {dict.dialogs.share.createFirst}
               </p>
               <Button
                 className="mt-5"
                 disabled={createMutation.isPending}
                 onClick={() => createMutation.mutate()}
               >
-                {createMutation.isPending ? "Membuat..." : "Buat share link"}
+                {createMutation.isPending ? dict.dialogs.share.creating : dict.dialogs.share.createLink}
               </Button>
             </div>
           )}
@@ -219,7 +220,7 @@ export function PageShareDialog({
           {share && (
             <div className="space-y-5">
               <div className="space-y-2">
-                <Label htmlFor="page-share-visibility">Who has access</Label>
+                <Label htmlFor="page-share-visibility">{dict.dialogs.share.whoHasAccess}</Label>
                 <NativeSelect
                   id="page-share-visibility"
                   value={share.visibility}
@@ -232,10 +233,10 @@ export function PageShareDialog({
                   }
                 >
                   <option value={PageShareVisibility.INVITED}>
-                    Only people invited
+                    {dict.dialogs.share.onlyInvited}
                   </option>
                   <option value={PageShareVisibility.PUBLIC}>
-                    Anyone on the web with the link
+                    {dict.dialogs.share.anyoneWithLink}
                   </option>
                 </NativeSelect>
               </div>
@@ -244,11 +245,11 @@ export function PageShareDialog({
                 <Input
                   readOnly
                   value={share.path}
-                  aria-label="Share link"
+                  aria-label={dict.dialogs.share.shareLinkAria}
                 />
                 <Button type="button" variant="outline" onClick={copyLink}>
                   {copied ? <CheckIcon /> : <CopyIcon />}
-                  {copied ? "Copied" : "Copy"}
+                  {copied ? dict.dialogs.share.copied : dict.dialogs.share.copy}
                 </Button>
               </div>
 
@@ -263,15 +264,15 @@ export function PageShareDialog({
                   >
                     <Input
                       type="email"
-                      placeholder="Invite by email"
+                      placeholder={dict.dialogs.share.inviteByEmail}
                       disabled={isMutating}
                       {...form.register("email", {
-                        required: "Email wajib diisi.",
+                        required: dict.dialogs.share.emailRequired,
                       })}
                     />
                     <Button type="submit" disabled={isMutating}>
                       <UserPlusIcon />
-                      Invite
+                      {dict.dialogs.share.invite}
                     </Button>
                   </form>
 
@@ -288,7 +289,7 @@ export function PageShareDialog({
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-medium">
-                            {invite.user.name || "Tanpa nama"}
+                            {invite.user.name || dict.dialogs.share.noName}
                           </p>
                           <p className="truncate text-xs text-muted-foreground">
                             {invite.user.email}
@@ -302,7 +303,7 @@ export function PageShareDialog({
                           onClick={() =>
                             removeInviteMutation.mutate(invite.id)
                           }
-                          aria-label={`Remove ${invite.user.email}`}
+                          aria-label={formatMessage(dict.dialogs.share.removeInviteAria, { email: invite.user.email })}
                         >
                           <Trash2Icon className="text-destructive" />
                         </Button>
@@ -311,11 +312,10 @@ export function PageShareDialog({
                     {share.invitedUsers.length === 0 && (
                       <div className="rounded-lg border border-dashed px-4 py-5 text-center">
                         <p className="text-sm font-medium">
-                          Link ini belum dapat dibuka orang lain
+                          {dict.dialogs.share.noInvitesTitle}
                         </p>
                         <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                          Undang user melalui email, atau ubah akses menjadi
-                          Anyone on the web with the link.
+                          {dict.dialogs.share.noInvitesDescription}
                         </p>
                       </div>
                     )}
@@ -337,13 +337,13 @@ export function PageShareDialog({
                 disabled={isMutating}
                 onClick={() => disableMutation.mutate()}
               >
-                Stop sharing
+                {dict.dialogs.share.stopSharing}
               </Button>
             ) : (
               <span />
             )}
             <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-              Done
+              {dict.dialogs.share.done}
             </Button>
           </DialogFooter>
         </DialogContent>

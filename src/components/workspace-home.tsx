@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { FilePlus2Icon, FolderPlusIcon } from "lucide-react";
 
 import { NodeType, WorkspaceRole } from "@/generated/prisma/browser";
@@ -12,6 +12,9 @@ import {
   NodeCollectionView,
   type NodeCollectionItem,
 } from "@/components/node-collection-view";
+import { useDictionary } from "@/i18n/dictionary-context";
+import { localeHref } from "@/i18n/paths";
+import type { Locale } from "@/i18n/config";
 
 type HomeWorkspace = {
   id: string;
@@ -49,6 +52,8 @@ export function WorkspaceHome({
   nodes: HomeNode[];
 }) {
   const router = useRouter();
+  const { lang } = useParams<{ lang: Locale }>();
+  const dict = useDictionary();
   const { selectedWorkspace, hasHydrated } = useWorkspaceStore();
   const [isPending, startTransition] = React.useTransition();
   const [createError, setCreateError] = React.useState<string | null>(null);
@@ -93,7 +98,7 @@ export function WorkspaceHome({
       }
 
       if (result.node) {
-        router.push(`/home/${result.node.id}`);
+        router.push(localeHref(`/home/${result.node.id}`, lang));
         router.refresh();
       }
     });
@@ -111,10 +116,9 @@ export function WorkspaceHome({
     return (
       <div className="mx-auto flex min-h-[60vh] max-w-xl items-center px-6 text-center">
         <div>
-          <h1 className="text-2xl font-semibold">Belum ada workspace</h1>
+          <h1 className="text-2xl font-semibold">{dict.home.noWorkspaceTitle}</h1>
           <p className="mt-2 text-muted-foreground">
-            Buat workspace dari sidebar untuk mulai menulis dan mengatur
-            halamanmu.
+            {dict.home.noWorkspaceDescription}
           </p>
         </div>
       </div>
@@ -133,7 +137,7 @@ export function WorkspaceHome({
               {activeWorkspace.name}
             </p>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Selamat datang{userName ? `, ${userName.split(" ")[0]}` : ""}
+              {dict.home.welcome}{userName ? `, ${userName.split(" ")[0]}` : ""}
             </h1>
           </div>
         </div>
@@ -142,7 +146,7 @@ export function WorkspaceHome({
           <div className="flex gap-2">
             <Button disabled={isPending} onClick={() => handleCreate(NodeType.PAGE)}>
               <FilePlus2Icon />
-              {isPending ? "Membuat..." : "Halaman baru"}
+              {isPending ? dict.home.creatingLabel : dict.home.newPageButton}
             </Button>
             <Button
               variant="outline"
@@ -150,7 +154,7 @@ export function WorkspaceHome({
               onClick={() => handleCreate(NodeType.FOLDER)}
             >
               <FolderPlusIcon />
-              Folder baru
+              {dict.home.newFolderButton}
             </Button>
           </div>
         )}
@@ -161,19 +165,19 @@ export function WorkspaceHome({
       )}
 
       <div className="mt-6 flex flex-wrap items-center gap-x-8 gap-y-2">
-        <StatItem label="item" value={workspaceNodes.length} />
-        <StatItem label="halaman" value={pageCount} />
-        <StatItem label="folder" value={folderCount} />
+        <StatItem label={dict.home.statsItem} value={workspaceNodes.length} />
+        <StatItem label={dict.home.statsPages} value={pageCount} />
+        <StatItem label={dict.home.statsFolders} value={folderCount} />
       </div>
 
       <div className="mt-10">
         <NodeCollectionView
           items={recentNodes}
-          getHref={(item) => `/home/${item.id}`}
-          title="Terakhir diperbarui"
-          description="Item yang baru saja diperbarui di workspace ini."
-          emptyTitle="Workspace masih kosong"
-          emptyDescription="Buat halaman pertama untuk mulai menulis catatan, ide, atau jurnal harianmu."
+          getHref={(item) => localeHref(`/home/${item.id}`, lang)}
+          title={dict.home.recentTitle}
+          description={dict.home.recentDescription}
+          emptyTitle={dict.home.emptyTitle}
+          emptyDescription={dict.home.emptyDescription}
           emptyAction={
             canEdit && (
               <Button
@@ -182,7 +186,7 @@ export function WorkspaceHome({
                 onClick={() => handleCreate(NodeType.PAGE)}
               >
                 <FilePlus2Icon />
-                Buat halaman pertama
+                {dict.home.emptyAction}
               </Button>
             )
           }

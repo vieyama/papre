@@ -25,6 +25,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { NativeSelect } from "./ui/native-select";
+import { useDictionary } from "@/i18n/dictionary-context";
+import { formatMessage } from "@/i18n/format";
 
 type AddMemberForm = {
   email: string;
@@ -64,6 +66,7 @@ export function WorkspaceMembersDialog({
   onOpenChange: (open: boolean) => void;
 }) {
   const router = useRouter();
+  const dict = useDictionary();
   const queryClient = useQueryClient();
   const [actionError, setActionError] = React.useState<string | null>(null);
   const form = useForm<AddMemberForm>({
@@ -78,7 +81,7 @@ export function WorkspaceMembersDialog({
       const result = await getWorkspaceMembers(workspaceId);
 
       if (result.error || !result.members || !result.currentUserRole) {
-        throw new Error(result.error ?? "Failed to load workspace members.");
+        throw new Error(result.error ?? dict.dialogs.members.loadError);
       }
 
       return {
@@ -173,9 +176,9 @@ export function WorkspaceMembersDialog({
     >
       <DialogContent className="sm:max-w-xl">
         <DialogHeader>
-          <DialogTitle>Anggota {workspaceName}</DialogTitle>
+          <DialogTitle>{formatMessage(dict.dialogs.members.title, { workspaceName })}</DialogTitle>
           <DialogDescription>
-            Kelola siapa yang dapat melihat dan mengubah workspace ini.
+            {dict.dialogs.members.description}
           </DialogDescription>
         </DialogHeader>
 
@@ -203,16 +206,16 @@ export function WorkspaceMembersDialog({
               >
                 <div className="space-y-2 sm:col-span-3">
                   <Label htmlFor="workspace-member-email">
-                    Tambah user terdaftar
+                    {dict.dialogs.members.addExisting}
                   </Label>
                 </div>
                 <Input
                   id="workspace-member-email"
                   type="email"
-                  placeholder="nama@email.com"
+                  placeholder={dict.dialogs.members.emailPlaceholder}
                   disabled={isMutating}
                   {...form.register("email", {
-                    required: "Email wajib diisi.",
+                    required: dict.dialogs.members.emailRequired,
                   })}
                 />
                 <NativeSelect
@@ -229,7 +232,7 @@ export function WorkspaceMembersDialog({
                 </NativeSelect>
                 <Button type="submit" disabled={isMutating}>
                   <UserPlusIcon />
-                  Tambah
+                  {dict.dialogs.members.add}
                 </Button>
                 {form.formState.errors.email?.message && (
                   <p className="text-sm text-destructive sm:col-span-3">
@@ -256,7 +259,7 @@ export function WorkspaceMembersDialog({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">
-                        {member.user.name || "Tanpa nama"}
+                        {member.user.name || dict.dialogs.members.noName}
                       </p>
                       <p className="truncate text-xs text-muted-foreground">
                         {member.user.email}
@@ -266,7 +269,7 @@ export function WorkspaceMembersDialog({
                     {manageable ? (
                       <>
                         <NativeSelect
-                          aria-label={`Role ${member.user.email}`}
+                          aria-label={formatMessage(dict.dialogs.members.roleAria, { email: member.user.email })}
                           value={member.role}
                           disabled={isMutating}
                           className="w-full"
@@ -289,7 +292,7 @@ export function WorkspaceMembersDialog({
                           size="icon-sm"
                           variant="ghost"
                           disabled={isMutating}
-                          aria-label={`Remove ${member.user.email}`}
+                          aria-label={formatMessage(dict.dialogs.members.removeAria, { email: member.user.email })}
                           onClick={() => {
                             setActionError(null);
                             removeMutation.mutate(member.id);
@@ -320,7 +323,7 @@ export function WorkspaceMembersDialog({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            Selesai
+            {dict.dialogs.members.done}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -10,6 +10,7 @@ import {
   SidebarFooter,
   SidebarHeader,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar"
 import type { Session } from "next-auth"
 import type { Node } from "@/generated/prisma/browser"
@@ -33,6 +34,7 @@ export function AppSidebar({
     avatar: "/avatars/shadcn.jpg",
   };
 
+  const { isMobile } = useSidebar();
   const {
     selectedWorkspace,
     hasHydrated,
@@ -86,7 +88,7 @@ export function AppSidebar({
       <SidebarFooter>
         <NavUser user={session?.user || fallbackUser} />
       </SidebarFooter>
-      <SidebarRail />
+      {!isMobile && <SidebarRail />}
     </Sidebar>
   )
 }

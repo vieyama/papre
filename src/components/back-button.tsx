@@ -4,9 +4,11 @@ import { useRouter } from "next/navigation";
 import { ChevronLeftIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { useDictionary } from "@/i18n/dictionary-context";
 
 export function BackButton() {
   const router = useRouter();
+  const dict = useDictionary();
 
   return (
     <Button
@@ -17,7 +19,7 @@ export function BackButton() {
       onClick={() => router.back()}
     >
       <ChevronLeftIcon />
-      Back
+      {dict.common.back}
     </Button>
   );
 }
