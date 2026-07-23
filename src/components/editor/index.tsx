@@ -34,6 +34,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useTheme } from "next-themes";
 
 interface EditorProps {
     content?: string
@@ -161,6 +162,8 @@ const MobileFormattingToolbar = (props: FormattingToolbarProps) => (
 
 const Editor = ({ content, onChange, placeholder, editable = true }: EditorProps) => {
     const isMobile = useIsMobile()
+    const { theme } = useTheme()
+    console.log(theme);
 
     const lastSyncedHtml = useRef<string | null>(null)
     const hasSyncedInitialContent = useRef(false)
@@ -187,10 +190,10 @@ const Editor = ({ content, onChange, placeholder, editable = true }: EditorProps
     }, [content, editor])
 
     return (
-        <div className="border border-zinc-100 rounded-md p-4 bg-white">
+        <div className="border border-zinc-100 rounded-md p-4 bg-white dark:bg-[#1f1f1f]">
             <BlockNoteView
                 editor={editor}
-                theme="light"
+                theme={theme === 'light' ? 'light' : 'dark'}
                 editable={editable}
                 formattingToolbar={!isMobile}
                 slashMenu={!isMobile}

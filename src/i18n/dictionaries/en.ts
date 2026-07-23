@@ -23,6 +23,10 @@ const en = {
     account: "Account",
     logout: "Log out",
     language: "Language",
+    theme: "Theme",
+    lightTheme: "Light",
+    darkTheme: "Dark",
+    systemTheme: "System",
   },
   landing: {
     metaDescription:

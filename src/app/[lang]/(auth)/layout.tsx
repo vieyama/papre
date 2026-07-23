@@ -5,6 +5,7 @@ import { getDictionary, hasLocale } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/paths";
 import { defaultLocale } from "@/i18n/config";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const metadata: Metadata = {
   robots: {
@@ -51,7 +52,10 @@ export default async function AuthLayout({
             <PapreGlyph className="size-6 text-foreground" />
             Papre
           </Link>
-          <LanguageSwitcher />
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <LanguageSwitcher />
+          </div>
         </div>
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-sm">{children}</div>

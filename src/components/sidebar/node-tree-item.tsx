@@ -90,7 +90,7 @@ export function NodeTreeItem({
                     {canEdit && node.type === NodeType.FOLDER && (
                         <SidebarMenuAction
                             type="button"
-                            className="cursor-pointer bg-white right-8 aria-expanded:bg-muted"
+                            className="cursor-pointer bg-white dark:bg-black right-8 aria-expanded:bg-muted"
                             showOnHover
                             onClick={() => onCreate(NodeType.PAGE, node.id)}
                             aria-label={`Add page inside ${node.title}`}

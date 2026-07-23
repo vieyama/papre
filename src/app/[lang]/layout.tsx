@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "@/components/ui/sonner";
 import { hasLocale, getDictionary } from "@/i18n/dictionaries";
 import { DictionaryProvider } from "@/i18n/dictionary-context";
+import { ThemeProvider } from "@/components/theme-provider";
 import type { Locale } from "@/i18n/config";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
@@ -74,10 +75,13 @@ export default async function RootLayout({
     <html
       lang={lang}
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", inter.variable)}
+      suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col">
-        <DictionaryProvider dict={dict}>{children}</DictionaryProvider>
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          <DictionaryProvider dict={dict}>{children}</DictionaryProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

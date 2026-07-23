@@ -23,6 +23,10 @@ const id = {
     account: "Akun",
     logout: "Keluar",
     language: "Bahasa",
+    theme: "Tema",
+    lightTheme: "Terang",
+    darkTheme: "Gelap",
+    systemTheme: "Sistem",
   },
   landing: {
     metaDescription:

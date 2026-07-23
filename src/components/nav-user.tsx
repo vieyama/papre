@@ -23,8 +23,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { BadgeCheckIcon, ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
+import { BadgeCheckIcon, ChevronsUpDownIcon, LogOutIcon, Sun, Moon, Monitor } from "lucide-react"
 import { User } from "next-auth"
+import { useTheme } from "next-themes"
 import { useDictionary } from "@/i18n/dictionary-context"
 import { localeHref, stripLocale } from "@/i18n/paths"
 import { locales, type Locale } from "@/i18n/config"
@@ -35,6 +36,12 @@ const LOCALE_LABEL: Record<Locale, string> = {
   id: "ID",
 }
 
+const THEME_OPTIONS = [
+  { value: "light", icon: Sun },
+  { value: "dark", icon: Moon },
+  { value: "system", icon: Monitor },
+] as const
+
 export function NavUser({
   user,
 }: {
@@ -44,6 +51,7 @@ export function NavUser({
   const { lang } = useParams<{ lang: Locale }>()
   const pathname = usePathname()
   const { locale: currentLocale, path } = stripLocale(pathname)
+  const { theme, setTheme } = useTheme()
   const dict = useDictionary()
 
   return (
@@ -93,6 +101,27 @@ export function NavUser({
                 </Link>
               </DropdownMenuItem>
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <div className="flex items-center justify-between px-2 py-1.5 text-sm">
+              <span className="text-muted-foreground">{dict.nav.theme}</span>
+              <div className="flex items-center gap-1">
+                {THEME_OPTIONS.map(({ value, icon: Icon }) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => setTheme(value)}
+                    className={cn(
+                      "rounded-md p-1 transition-colors",
+                      value === theme
+                        ? "bg-accent text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    <Icon className="size-3.5" />
+                  </button>
+                ))}
+              </div>
+            </div>
             <DropdownMenuSeparator />
             <div className="flex items-center justify-between px-2 py-1.5 text-sm">
               <span className="text-muted-foreground">{dict.nav.language}</span>

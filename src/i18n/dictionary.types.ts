@@ -21,6 +21,10 @@ export interface Dictionary {
     account: string;
     logout: string;
     language: string;
+    theme: string;
+    lightTheme: string;
+    darkTheme: string;
+    systemTheme: string;
   };
   landing: {
     metaDescription: string;

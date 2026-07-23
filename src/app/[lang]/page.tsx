@@ -18,6 +18,7 @@ import { getDictionary, hasLocale } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/paths";
 import { defaultLocale } from "@/i18n/config";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const FEATURE_ICONS = [
   FolderIcon,
@@ -64,6 +65,7 @@ export default async function LandingPage({
           Papre
         </Link>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <LanguageSwitcher />
           <Button asChild variant="ghost">
             <Link href={localeHref("/login", locale)}>{dict.landing.login}</Link>
