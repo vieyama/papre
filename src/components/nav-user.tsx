@@ -2,7 +2,7 @@
 
 import { signOut } from "next-auth/react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
+import { useParams, usePathname } from "next/navigation"
 import {
   Avatar,
   AvatarFallback,
@@ -26,9 +26,14 @@ import {
 import { BadgeCheckIcon, ChevronsUpDownIcon, LogOutIcon } from "lucide-react"
 import { User } from "next-auth"
 import { useDictionary } from "@/i18n/dictionary-context"
-import { localeHref } from "@/i18n/paths"
-import type { Locale } from "@/i18n/config"
-import { LanguageSwitcher } from "@/components/language-switcher"
+import { localeHref, stripLocale } from "@/i18n/paths"
+import { locales, type Locale } from "@/i18n/config"
+import { cn } from "@/lib/utils"
+
+const LOCALE_LABEL: Record<Locale, string> = {
+  en: "EN",
+  id: "ID",
+}
 
 export function NavUser({
   user,
@@ -37,6 +42,8 @@ export function NavUser({
 }) {
   const { isMobile } = useSidebar()
   const { lang } = useParams<{ lang: Locale }>()
+  const pathname = usePathname()
+  const { locale: currentLocale, path } = stripLocale(pathname)
   const dict = useDictionary()
 
   return (
@@ -89,7 +96,22 @@ export function NavUser({
             <DropdownMenuSeparator />
             <div className="flex items-center justify-between px-2 py-1.5 text-sm">
               <span className="text-muted-foreground">{dict.nav.language}</span>
-              <LanguageSwitcher />
+              <div className="flex items-center gap-1">
+                {locales.map((locale) => (
+                  <Link
+                    key={locale}
+                    href={localeHref(path, locale)}
+                    className={cn(
+                      "rounded-md px-2 py-0.5 transition-colors",
+                      locale === currentLocale
+                        ? "font-medium text-foreground"
+                        : "text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {LOCALE_LABEL[locale]}
+                  </Link>
+                ))}
+              </div>
             </div>
             <DropdownMenuSeparator />
             <form action={async () => {

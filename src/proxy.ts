@@ -35,7 +35,15 @@ export async function proxy(req: NextRequest) {
     )
 
     if (isProtected) {
-        const token = await getToken({ req, secret: process.env.AUTH_SECRET })
+        // `getToken()` defaults `secureCookie` to `false`, so behind a TLS-terminating
+        // reverse proxy (AUTH_URL="https://...") it looks for the plain
+        // "authjs.session-token" cookie while NextAuth actually issues
+        // "__Secure-authjs.session-token" — causing every authenticated request to a
+        // protected path to be treated as unauthenticated. Must match @auth/core's own
+        // secure-cookie decision (see node_modules/@auth/core/lib/init.js), which is
+        // based on whether AUTH_URL is https.
+        const secureCookie = process.env.AUTH_URL?.startsWith("https://") ?? false
+        const token = await getToken({ req, secret: process.env.AUTH_SECRET, secureCookie })
 
         if (!token) {
             const loginUrl = req.nextUrl.clone()
