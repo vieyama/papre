@@ -7,6 +7,7 @@ import sharp from "sharp";
 const DEFAULT_BUCKET = "papre";
 const MAX_COVER_BYTES = 10 * 1024 * 1024;
 const MAX_BOOK_PDF_BYTES = 100 * 1024 * 1024;
+const MAX_CONTENT_IMAGE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_COVER_TYPES = new Set([
   "image/avif",
   "image/gif",
@@ -14,6 +15,14 @@ const ALLOWED_COVER_TYPES = new Set([
   "image/png",
   "image/webp",
 ]);
+const CONTENT_IMAGE_EXTENSIONS: Record<string, string> = {
+  "image/avif": "avif",
+  "image/gif": "gif",
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/svg+xml": "svg",
+};
 
 const globalForMinio = globalThis as unknown as {
   minioClient?: Client;
@@ -83,6 +92,10 @@ export function getMinioBookPdfReference(objectKey: string) {
   return `minio://${minioBucket}/${objectKey}`;
 }
 
+export function getMinioContentImageReference(objectKey: string) {
+  return `minio://${minioBucket}/${objectKey}`;
+}
+
 export async function optimizeAndStoreCover(file: File) {
   if (!ALLOWED_COVER_TYPES.has(file.type)) {
     throw new Error("Unsupported image format.");
@@ -143,6 +156,48 @@ export async function optimizeAndStoreCover(file: File) {
   return {
     objectKey,
     reference: getMinioCoverReference(objectKey),
+  };
+}
+
+export async function storeContentImage(file: File) {
+  const extension = CONTENT_IMAGE_EXTENSIONS[file.type];
+
+  if (!extension) {
+    throw new Error("Unsupported image format.");
+  }
+
+  if (file.size === 0 || file.size > MAX_CONTENT_IMAGE_BYTES) {
+    throw new Error("Image must be between 1 byte and 20 MB.");
+  }
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+  const hash = createHash("sha256").update(buffer).digest("hex");
+  const objectKey = `content/${hash}.${extension}`;
+
+  await ensureMinioBucket();
+
+  try {
+    await minioClient.statObject(minioBucket, objectKey);
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String(error.code)
+        : "";
+
+    if (code !== "NotFound" && code !== "NoSuchKey") {
+      throw error;
+    }
+
+    await minioClient.putObject(minioBucket, objectKey, buffer, buffer.byteLength, {
+      "Content-Type": file.type,
+      "Cache-Control": "private, max-age=31536000, immutable",
+      "X-Amz-Meta-Sha256": hash,
+    });
+  }
+
+  return {
+    objectKey,
+    reference: getMinioContentImageReference(objectKey),
   };
 }
 

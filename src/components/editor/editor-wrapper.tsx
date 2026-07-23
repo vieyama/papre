@@ -9,11 +9,13 @@ export default function EditorWrapper({
     onChange,
     placeholder = "Type / to add blocks, headings, checklists, quotes, or dividers.",
     editable = true,
+    nodeId,
 }: {
     content?: string
     onChange?: (content: string) => void
     placeholder?: string
     editable?: boolean
+    nodeId?: string
 }) {
     return (
         <Editor
@@ -21,6 +23,7 @@ export default function EditorWrapper({
             onChange={onChange}
             placeholder={placeholder}
             editable={editable}
+            nodeId={nodeId}
         />
     );
 }

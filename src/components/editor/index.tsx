@@ -41,6 +41,7 @@ interface EditorProps {
     onChange?: (content: string) => void
     placeholder?: string
     editable?: boolean
+    nodeId?: string
 }
 
 const emptyDocument = [{ type: "paragraph" as const }]
@@ -160,10 +161,9 @@ const MobileFormattingToolbar = (props: FormattingToolbarProps) => (
     </FormattingToolbar>
 );
 
-const Editor = ({ content, onChange, placeholder, editable = true }: EditorProps) => {
+const Editor = ({ content, onChange, placeholder, editable = true, nodeId }: EditorProps) => {
     const isMobile = useIsMobile()
     const { theme } = useTheme()
-    console.log(theme);
 
     const lastSyncedHtml = useRef<string | null>(null)
     const hasSyncedInitialContent = useRef(false)
@@ -172,8 +172,29 @@ const Editor = ({ content, onChange, placeholder, editable = true }: EditorProps
         {
             initialContent: emptyDocument,
             placeholders: placeholder ? { default: placeholder } : undefined,
+            uploadFile: nodeId
+                ? async (file: File) => {
+                    const formData = new FormData()
+                    formData.set("file", file)
+
+                    const response = await fetch(`/api/nodes/${nodeId}/images`, {
+                        method: "POST",
+                        body: formData,
+                    })
+                    const result = (await response.json()) as {
+                        url?: string
+                        error?: string
+                    }
+
+                    if (!response.ok || !result.url) {
+                        throw new Error(result.error ?? "Failed to upload image.")
+                    }
+
+                    return result.url
+                }
+                : undefined,
         },
-        [placeholder],
+        [placeholder, nodeId],
     )
 
     useEffect(() => {

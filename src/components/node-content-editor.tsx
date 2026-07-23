@@ -162,6 +162,7 @@ export function NodeContentEditor({
         content={initialContent}
         onChange={handleContentChange}
         editable={editable}
+        nodeId={nodeId}
       />
     </section>
   );
