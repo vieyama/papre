@@ -47,6 +47,7 @@ const allowedTags = [
   "audio",
   "video",
   "source",
+  "input",
 ];
 
 export function sanitizePageContent(content: string) {
@@ -63,6 +64,11 @@ export function sanitizePageContent(content: string) {
       th: ["colspan", "rowspan"],
       td: ["colspan", "rowspan"],
       col: ["span"],
+      // Only BlockNote's check-list-item checkbox is allowed through; the
+      // `type` restriction is enforced below via `exclusiveFilter` since
+      // `allowedAttributes` alone can only allow/deny attribute names, not
+      // pin an attribute to a specific value.
+      input: ["type", "checked"],
     },
     allowedSchemes: ["http", "https", "mailto", "tel"],
     allowedSchemesByTag: {
@@ -74,5 +80,7 @@ export function sanitizePageContent(content: string) {
     allowedSchemesAppliedToAttributes: ["href", "src", "poster"],
     allowProtocolRelative: false,
     disallowedTagsMode: "discard",
+    exclusiveFilter: (frame) =>
+      frame.tag === "input" && frame.attribs.type !== "checkbox",
   });
 }
