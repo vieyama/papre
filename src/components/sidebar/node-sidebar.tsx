@@ -14,6 +14,7 @@ import {
 import { NodeType, type Node } from "@/generated/prisma/browser";
 import {
   createNode,
+  duplicateNode,
   reorderNode,
 } from "@/services/node";
 import { excludeBookNodes } from "@/lib/book-node";
@@ -146,6 +147,20 @@ export function NodeSidebar({
     });
   }
 
+  function handleDuplicateNode(node: NodeWithChildren) {
+    startTransition(async () => {
+      const result = await duplicateNode({
+        workspaceId,
+        nodeId: node.id,
+      });
+
+      if (result.node) {
+        router.push(localeHref(`/home/${result.node.id}`, lang));
+        router.refresh();
+      }
+    });
+  }
+
   return (
     <>
       <SidebarGroup>
@@ -213,6 +228,7 @@ export function NodeSidebar({
               canMoveUp={index > 0}
               canMoveDown={index < tree.length - 1}
               onCreate={handleCreate}
+              onDuplicateNode={handleDuplicateNode}
               onMoveNode={(node) => {
                 setMoveError(null);
                 setMoveTargetParentId(node.parentId ?? ROOT_PARENT_VALUE);

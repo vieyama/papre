@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import prisma from "@/lib/prisma";
 import { AccountProfileForm } from "@/views/account/account-profile-form";
+import { LogoutButton } from "@/views/account/logout-button";
 import { getDictionary, hasLocale } from "@/i18n/dictionaries";
 import { localeHref } from "@/i18n/paths";
 import { defaultLocale, type Locale } from "@/i18n/config";
@@ -158,6 +159,7 @@ export default async function AccountPage({
               <Link href={localeHref("/forgot-password", locale)}>{dict.account.resetPassword}</Link>
             </Button>
           )}
+          <LogoutButton />
         </CardContent>
       </Card>
     </div>

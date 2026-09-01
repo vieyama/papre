@@ -1,8 +1,9 @@
 "use client";
 
 import * as React from "react";
-import { useParams, useRouter } from "next/navigation";
-import { FilePlus2Icon, FolderPlusIcon } from "lucide-react";
+import Link from "next/link";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { ArrowLeftIcon, FilePlus2Icon, FolderPlusIcon } from "lucide-react";
 
 import { NodeType, WorkspaceRole } from "@/generated/prisma/browser";
 import { createNode } from "@/services/node";
@@ -44,6 +45,7 @@ export function PageList({
   nodes: PageListNode[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { lang } = useParams<{ lang: Locale }>();
   const dict = useDictionary();
   const { selectedWorkspace, hasHydrated } = useWorkspaceStore();
@@ -54,18 +56,43 @@ export function PageList({
     workspaces.find((workspace) => workspace.id === selectedWorkspace?.id) ??
     workspaces[0];
   const activeWorkspaceId = activeWorkspace?.id;
+  const selectedFolderId = searchParams.get("folderId");
 
-  const pages: NodeCollectionItem[] = React.useMemo(() => {
-    const workspaceNodes = nodes.filter(
-      (node) => node.workspaceId === activeWorkspaceId,
-    );
+  const workspaceNodes = React.useMemo(() => {
+    if (!activeWorkspaceId) return [];
 
-    return excludeBookNodes(workspaceNodes).sort(
-      (first, second) =>
-        new Date(second.updatedAt).getTime() -
-        new Date(first.updatedAt).getTime(),
+    return excludeBookNodes(
+      nodes.filter((node) => node.workspaceId === activeWorkspaceId),
     );
   }, [activeWorkspaceId, nodes]);
+
+  const selectedFolder = React.useMemo(() => {
+    if (!selectedFolderId) return null;
+
+    return (
+      workspaceNodes.find(
+        (node) =>
+          node.id === selectedFolderId && node.type === NodeType.FOLDER,
+      ) ?? null
+    );
+  }, [selectedFolderId, workspaceNodes]);
+
+  const visibleParentId = selectedFolder?.id ?? null;
+
+  const pages: NodeCollectionItem[] = React.useMemo(() => {
+    return workspaceNodes
+      .filter((node) => node.parentId === visibleParentId)
+      .sort((first, second) => {
+        if (first.type !== second.type) {
+          return first.type === NodeType.FOLDER ? -1 : 1;
+        }
+
+        return (
+          new Date(second.updatedAt).getTime() -
+          new Date(first.updatedAt).getTime()
+        );
+      });
+  }, [visibleParentId, workspaceNodes]);
 
   const canEdit = activeWorkspace?.currentUserRole !== WorkspaceRole.VIEWER;
 
@@ -76,6 +103,7 @@ export function PageList({
     startTransition(async () => {
       const result = await createNode({
         workspaceId: activeWorkspace?.id,
+        parentId: visibleParentId,
         type,
       });
 
@@ -120,33 +148,53 @@ export function PageList({
 
       <NodeCollectionView
         items={pages}
-        getHref={(item) => localeHref(`/home/${item.id}`, lang)}
-        title={dict.pagesRoute.title}
+        getHref={(item) =>
+          item.type === NodeType.FOLDER
+            ? `${localeHref("/pages", lang)}?folderId=${encodeURIComponent(item.id)}`
+            : localeHref(`/home/${item.id}`, lang)
+        }
+        title={selectedFolder?.title ?? dict.pagesRoute.title}
         description={formatMessage(dict.pagesRoute.description, {
           workspaceName: activeWorkspace.name,
         })}
         actions={
-          canEdit && (
-            <>
-              <Button
-                size="sm"
-                variant="outline"
-                disabled={isPending}
-                onClick={() => handleCreate(NodeType.FOLDER)}
-              >
-                <FolderPlusIcon />
-                {dict.pagesRoute.folderButton}
+          <>
+            {selectedFolder && (
+              <Button size="sm" variant="ghost" asChild>
+                <Link
+                  href={
+                    selectedFolder.parentId
+                      ? `${localeHref("/pages", lang)}?folderId=${encodeURIComponent(selectedFolder.parentId)}`
+                      : localeHref("/pages", lang)
+                  }
+                >
+                  <ArrowLeftIcon />
+                  {dict.common.back}
+                </Link>
               </Button>
-              <Button
-                size="sm"
-                disabled={isPending}
-                onClick={() => handleCreate(NodeType.PAGE)}
-              >
-                <FilePlus2Icon />
-                {dict.pagesRoute.pageButton}
-              </Button>
-            </>
-          )
+            )}
+            {canEdit && (
+              <>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={isPending}
+                  onClick={() => handleCreate(NodeType.FOLDER)}
+                >
+                  <FolderPlusIcon />
+                  {dict.pagesRoute.folderButton}
+                </Button>
+                <Button
+                  size="sm"
+                  disabled={isPending}
+                  onClick={() => handleCreate(NodeType.PAGE)}
+                >
+                  <FilePlus2Icon />
+                  {dict.pagesRoute.pageButton}
+                </Button>
+              </>
+            )}
+          </>
         }
         emptyTitle={dict.pagesRoute.emptyTitle}
         emptyDescription={dict.pagesRoute.emptyDescription}

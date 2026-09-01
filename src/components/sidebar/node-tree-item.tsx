@@ -4,7 +4,7 @@ import { NodeWithChildren } from "./type";
 import { usePathname } from "next/navigation";
 import { SidebarMenuAction, SidebarMenuButton, SidebarMenuItem, SidebarMenuSub, useSidebar } from "../ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
-import { ChevronRightIcon, FilePlus2Icon, MoreHorizontalIcon, FolderPlusIcon, ArrowLeftRightIcon, ArrowUpIcon, ArrowDownIcon, PencilIcon, Trash2Icon } from "lucide-react";
+import { ChevronRightIcon, FilePlus2Icon, MoreHorizontalIcon, FolderPlusIcon, ArrowLeftRightIcon, ArrowUpIcon, ArrowDownIcon, PencilIcon, Trash2Icon, CopyIcon } from "lucide-react";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../ui/dropdown-menu";
 import { NodeIcon } from "./node-icon";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ export function NodeTreeItem({
     canMoveDown,
     onCreate,
     onMoveNode,
+    onDuplicateNode,
     onReorderNode,
     onRenameNode,
     onDeleteNode,
@@ -27,6 +28,7 @@ export function NodeTreeItem({
     canMoveDown: boolean;
     onCreate: (type: NodeType, parentId?: string) => void;
     onMoveNode: (node: NodeWithChildren) => void;
+    onDuplicateNode: (node: NodeWithChildren) => void;
     onReorderNode: (node: NodeWithChildren, direction: "up" | "down") => void;
     onRenameNode: (node: NodeWithChildren) => void;
     onDeleteNode: (node: NodeWithChildren) => void;
@@ -124,6 +126,10 @@ export function NodeTreeItem({
                                     <ArrowLeftRightIcon />
                                     Move
                                 </DropdownMenuItem>
+                                <DropdownMenuItem onSelect={() => onDuplicateNode(node)}>
+                                    <CopyIcon />
+                                    Duplicate
+                                </DropdownMenuItem>
                                 <DropdownMenuItem
                                     disabled={!canMoveUp}
                                     onSelect={() => onReorderNode(node, "up")}
@@ -166,6 +172,7 @@ export function NodeTreeItem({
                                     canMoveDown={index < node.children.length - 1}
                                     onCreate={onCreate}
                                     onMoveNode={onMoveNode}
+                                    onDuplicateNode={onDuplicateNode}
                                     onReorderNode={onReorderNode}
                                     onRenameNode={onRenameNode}
                                     onDeleteNode={onDeleteNode}

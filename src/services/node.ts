@@ -32,6 +32,11 @@ type DeleteNodeInput = {
   nodeId: string;
 };
 
+type DuplicateNodeInput = {
+  workspaceId: string;
+  nodeId: string;
+};
+
 type MoveNodeInput = {
   workspaceId: string;
   nodeId: string;
@@ -119,6 +124,29 @@ function collectDescendantIds(
   }
 
   return descendantIds;
+}
+
+function collectDescendantIdsInTreeOrder(
+  nodeId: string,
+  childrenByParentId: Map<string, string[]>,
+) {
+  const ids: string[] = [];
+  const pendingNodeIds = [nodeId];
+
+  while (pendingNodeIds.length > 0) {
+    const currentNodeId = pendingNodeIds.pop();
+
+    if (!currentNodeId) continue;
+
+    ids.push(currentNodeId);
+
+    const children = childrenByParentId.get(currentNodeId) ?? [];
+    for (let index = children.length - 1; index >= 0; index -= 1) {
+      pendingNodeIds.push(children[index]);
+    }
+  }
+
+  return ids;
 }
 
 function reorderSiblingIds(
@@ -661,6 +689,152 @@ export async function deleteNode(input: DeleteNodeInput) {
   revalidatePath("/home", "layout");
 
   return { archivedNodeIds };
+}
+
+export async function duplicateNode(input: DuplicateNodeInput) {
+  const session = await auth();
+  const userId = session?.user?.id;
+
+  if (!userId) {
+    return { error: "You must be signed in to duplicate a node." };
+  }
+
+  const workspace = await canEditWorkspace(userId, input.workspaceId);
+
+  if (!workspace) {
+    return { error: "You do not have permission to edit this workspace." };
+  }
+
+  const sourceNodes = await prisma.node.findMany({
+    where: {
+      workspaceId: input.workspaceId,
+      isArchived: false,
+      type: {
+        in: [NodeType.FOLDER, NodeType.PAGE],
+      },
+    },
+    orderBy: [
+      { position: "asc" },
+      { createdAt: "asc" },
+    ],
+    include: {
+      pageContent: true,
+    },
+  });
+
+  const sourceNode = sourceNodes.find((node) => node.id === input.nodeId);
+
+  if (!sourceNode) {
+    return { error: "Node was not found." };
+  }
+
+  const childrenByParentId = buildChildrenByParentId(sourceNodes);
+  const sourceIds = collectDescendantIdsInTreeOrder(
+    sourceNode.id,
+    childrenByParentId,
+  );
+  const sourceNodesById = new Map(sourceNodes.map((node) => [node.id, node]));
+  const duplicatedIdsBySourceId = new Map<string, string>();
+
+  for (const sourceId of sourceIds) {
+    duplicatedIdsBySourceId.set(sourceId, randomUUID());
+  }
+
+  const lastSibling = await prisma.node.findFirst({
+    where: {
+      workspaceId: input.workspaceId,
+      parentId: sourceNode.parentId,
+      isArchived: false,
+    },
+    orderBy: { position: "desc" },
+    select: { position: true },
+  });
+
+  const rootDuplicateId = duplicatedIdsBySourceId.get(sourceNode.id);
+
+  if (!rootDuplicateId) {
+    return { error: "Failed to duplicate node." };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    for (const sourceId of sourceIds) {
+      const node = sourceNodesById.get(sourceId);
+      const duplicateId = duplicatedIdsBySourceId.get(sourceId);
+
+      if (!node || !duplicateId) continue;
+
+      const duplicatedParentId =
+        node.id === sourceNode.id
+          ? sourceNode.parentId
+          : duplicatedIdsBySourceId.get(node.parentId ?? "") ?? null;
+      const title = await decryptUserData(
+        workspace.ownerId,
+        `node:${node.id}:title`,
+        node.title,
+      );
+      const duplicatedTitle = await encryptUserData(
+        workspace.ownerId,
+        `node:${duplicateId}:title`,
+        node.id === sourceNode.id ? `${title} copy` : title,
+      );
+      const contentText = node.pageContent?.contentText
+        ? await decryptUserData(
+            workspace.ownerId,
+            `node:${node.id}:content`,
+            node.pageContent.contentText,
+          )
+        : null;
+      const duplicatedContentText =
+        contentText === null
+          ? null
+          : await encryptUserData(
+              workspace.ownerId,
+              `node:${duplicateId}:content`,
+              contentText,
+            );
+
+      await tx.node.create({
+        data: {
+          id: duplicateId,
+          title: duplicatedTitle,
+          type: node.type,
+          workspaceId: node.workspaceId,
+          parentId: duplicatedParentId,
+          createdById: userId,
+          position:
+            node.id === sourceNode.id
+              ? (lastSibling?.position ?? -1) + 1
+              : node.position,
+          icon: node.icon,
+          coverImage: node.coverImage,
+          calendarDate: node.calendarDate,
+          isPinned: false,
+          isArchived: false,
+          isFavorite: false,
+          ...(node.pageContent
+            ? {
+                pageContent: {
+                  create: {
+                    format: node.pageContent.format,
+                    contentJson: node.pageContent.contentJson ?? undefined,
+                    contentText: duplicatedContentText,
+                  },
+                },
+              }
+            : {}),
+        },
+      });
+    }
+  });
+
+  revalidatePath("/home", "layout");
+  revalidatePath("/calendar");
+
+  return {
+    node: {
+      id: rootDuplicateId,
+    },
+  };
 }
 
 export async function moveNode(input: MoveNodeInput) {
