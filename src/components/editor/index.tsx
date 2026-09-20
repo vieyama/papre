@@ -169,27 +169,90 @@ const useMobileKeyboardOffset = (isMobile: boolean) => {
         const shell = editorShellRef.current
         const viewport = window.visualViewport
 
-        if (!isMobile || !shell || !viewport) {
+        if (!isMobile || !shell) {
             return
         }
 
-        const updateViewportVars = () => {
-            const keyboardOffset = Math.max(
-                0,
-                document.documentElement.clientHeight - viewport.height - viewport.offsetTop,
-            )
+        let keyboardOffset = 0
+        let scrollTimer: ReturnType<typeof setTimeout> | undefined
 
-            shell.style.setProperty("--mobile-keyboard-offset", `${keyboardOffset}px`)
-            shell.style.setProperty("--mobile-viewport-height", `${viewport.height}px`)
+        const scrollCaretIntoView = () => {
+            const selection = window.getSelection()
+            if (!selection?.rangeCount || !shell.contains(selection.anchorNode)) {
+                return
+            }
+
+            const caret = selection.getRangeAt(0).getBoundingClientRect()
+            const viewportTop = viewport?.offsetTop ?? 0
+            const viewportHeight = viewport?.height ?? window.innerHeight
+            const visibleBottom = Math.min(
+                viewportTop + viewportHeight,
+                document.documentElement.clientHeight - keyboardOffset,
+            ) - 64
+
+            if (caret.bottom > visibleBottom) {
+                window.scrollBy({
+                    top: caret.bottom - visibleBottom + 16,
+                    behavior: "smooth",
+                })
+            } else if (caret.top < viewportTop) {
+                window.scrollBy({
+                    top: caret.top - viewportTop - 16,
+                    behavior: "smooth",
+                })
+            }
         }
 
-        updateViewportVars()
-        viewport.addEventListener("resize", updateViewportVars)
-        viewport.addEventListener("scroll", updateViewportVars)
+        const updateVars = (nextKeyboardOffset: number) => {
+            keyboardOffset = Math.max(0, nextKeyboardOffset)
+            const viewportHeight = viewport?.height ?? window.innerHeight
+
+            shell.style.setProperty("--mobile-keyboard-offset", `${keyboardOffset}px`)
+            shell.style.setProperty("--mobile-viewport-height", `${viewportHeight}px`)
+
+            clearTimeout(scrollTimer)
+            scrollTimer = setTimeout(scrollCaretIntoView, 150)
+        }
+
+        const updateFromViewport = () => {
+            if (!viewport) return
+
+            updateVars(
+                document.documentElement.clientHeight - viewport.height - viewport.offsetTop,
+            )
+        }
+
+        type VirtualKeyboard = {
+            boundingRect: DOMRectReadOnly
+            addEventListener: (type: "geometrychange", listener: () => void) => void
+            removeEventListener: (type: "geometrychange", listener: () => void) => void
+        }
+        const virtualKeyboard = (
+            navigator as Navigator & { virtualKeyboard?: VirtualKeyboard }
+        ).virtualKeyboard
+        const updateFromVirtualKeyboard = () => {
+            updateVars(virtualKeyboard?.boundingRect.height ?? 0)
+        }
+
+        if (virtualKeyboard) {
+            updateFromVirtualKeyboard()
+            virtualKeyboard.addEventListener("geometrychange", updateFromVirtualKeyboard)
+        } else {
+            updateFromViewport()
+            viewport?.addEventListener("resize", updateFromViewport)
+            viewport?.addEventListener("scroll", updateFromViewport)
+        }
+        document.addEventListener("selectionchange", scrollCaretIntoView)
 
         return () => {
-            viewport.removeEventListener("resize", updateViewportVars)
-            viewport.removeEventListener("scroll", updateViewportVars)
+            if (virtualKeyboard) {
+                virtualKeyboard.removeEventListener("geometrychange", updateFromVirtualKeyboard)
+            } else {
+                viewport?.removeEventListener("resize", updateFromViewport)
+                viewport?.removeEventListener("scroll", updateFromViewport)
+            }
+            document.removeEventListener("selectionchange", scrollCaretIntoView)
+            clearTimeout(scrollTimer)
         }
     }, [isMobile])
 
