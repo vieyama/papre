@@ -148,10 +148,30 @@
   .bn-editor {
     padding-inline: 15px !important;
   }
+
+  .mobile-editor-shell:focus-within {
+    padding-bottom: calc(
+      var(--mobile-keyboard-offset, 0px) + 4rem + env(safe-area-inset-bottom, 0px)
+    );
+    transition: padding-bottom 0.15s ease-out;
+  }
+
+  .mobile-editor-shell:focus-within .bn-editor {
+    max-height: calc(var(--mobile-viewport-height, 100dvh) - 8rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scroll-padding-bottom: 4rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-editor-shell:focus-within .bn-block-outer:last-child {
+    scroll-margin-bottom: 4rem;
+  }
 }
 
 .bn-mobile-formatting-toolbar {
   width: 100%;
   display: flex;
   justify-content: center;
+  padding-inline: 0.75rem;
 }

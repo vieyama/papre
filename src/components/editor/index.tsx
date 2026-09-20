@@ -25,6 +25,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import "@blocknote/mantine/style.css";
 import { CheckIcon, ChevronDownIcon } from "lucide-react";
 import { useRef, useEffect, useMemo } from "react";
+import type { CSSProperties } from "react";
 import { CustomDragHandleMenu } from "./CustomDragHandleMenu";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -161,9 +162,44 @@ const MobileFormattingToolbar = (props: FormattingToolbarProps) => (
     </FormattingToolbar>
 );
 
+const useMobileKeyboardOffset = (isMobile: boolean) => {
+    const editorShellRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const shell = editorShellRef.current
+        const viewport = window.visualViewport
+
+        if (!isMobile || !shell || !viewport) {
+            return
+        }
+
+        const updateViewportVars = () => {
+            const keyboardOffset = Math.max(
+                0,
+                document.documentElement.clientHeight - viewport.height - viewport.offsetTop,
+            )
+
+            shell.style.setProperty("--mobile-keyboard-offset", `${keyboardOffset}px`)
+            shell.style.setProperty("--mobile-viewport-height", `${viewport.height}px`)
+        }
+
+        updateViewportVars()
+        viewport.addEventListener("resize", updateViewportVars)
+        viewport.addEventListener("scroll", updateViewportVars)
+
+        return () => {
+            viewport.removeEventListener("resize", updateViewportVars)
+            viewport.removeEventListener("scroll", updateViewportVars)
+        }
+    }, [isMobile])
+
+    return editorShellRef
+}
+
 const Editor = ({ content, onChange, placeholder, editable = true, nodeId }: EditorProps) => {
     const isMobile = useIsMobile()
     const { theme } = useTheme()
+    const editorShellRef = useMobileKeyboardOffset(isMobile)
 
     const lastSyncedHtml = useRef<string | null>(null)
     const hasSyncedInitialContent = useRef(false)
@@ -211,7 +247,14 @@ const Editor = ({ content, onChange, placeholder, editable = true, nodeId }: Edi
     }, [content, editor])
 
     return (
-        <div className="border border-zinc-100 rounded-md p-4 bg-white dark:bg-[#1f1f1f]">
+        <div
+            ref={editorShellRef}
+            className="mobile-editor-shell border border-zinc-100 rounded-md p-4 bg-white dark:bg-[#1f1f1f]"
+            style={{
+                "--mobile-keyboard-offset": "0px",
+                "--mobile-viewport-height": "100dvh",
+            } as CSSProperties}
+        >
             <BlockNoteView
                 editor={editor}
                 theme={theme === 'light' ? 'light' : 'dark'}
