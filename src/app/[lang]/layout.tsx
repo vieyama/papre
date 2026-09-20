@@ -8,6 +8,7 @@ import { hasLocale, getDictionary } from "@/i18n/dictionaries";
 import { DictionaryProvider } from "@/i18n/dictionary-context";
 import { ThemeProvider } from "@/components/theme-provider";
 import type { Locale } from "@/i18n/config";
+import { ServiceWorkerRegister } from "@/components/service-worker-register";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 const metadataBase = new URL(
@@ -81,6 +82,7 @@ export default async function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <DictionaryProvider dict={dict}>{children}</DictionaryProvider>
           <Toaster />
+          <ServiceWorkerRegister />
         </ThemeProvider>
       </body>
     </html>

@@ -266,6 +266,19 @@ export interface Dictionary {
     memberSince: string;
     resetPassword: string;
   };
+  gallery: {
+    metaTitle: string;
+    title: string;
+    description: string;
+    accountDescription: string;
+    openGallery: string;
+    emptyTitle: string;
+    emptyDescription: string;
+    deleteFile: string;
+    deleteTitle: string;
+    deleteDescription: string;
+    deleteError: string;
+  };
   sidebar: {
     addFolder: string;
     addPage: string;

@@ -26,6 +26,31 @@ model User {
   memberships     WorkspaceMember[]
   createdNodes    Node[]
   pageShareInvites PageShareInvite[]
+  storedAssets     StoredAsset[]
+}
+
+enum StoredAssetKind {
+  COVER_IMAGE
+  CONTENT_IMAGE
+  BOOK_PDF
+}
+
+model StoredAsset {
+  id           String          @id @default(uuid())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodeId       String
+  objectKey    String
+  kind         StoredAssetKind
+  originalName String?
+  mimeType     String
+  size         Int
+  createdAt    DateTime        @default(now())
+
+  @@unique([userId, nodeId, objectKey])
+  @@index([userId, createdAt])
+  @@index([objectKey])
+  @@index([nodeId])
 }
 
 model Account {

@@ -5,6 +5,7 @@ import { auth } from "@/auth";
 import {
   NodeType,
   PageContentFormat,
+  StoredAssetKind,
   WorkspaceRole,
   type Prisma,
 } from "@/generated/prisma/client";
@@ -568,8 +569,9 @@ export async function importBookPdf(formData: FormData) {
       size: file.size,
     } satisfies Prisma.InputJsonObject;
 
-    await prisma.node.create({
-      data: {
+    await prisma.$transaction([
+      prisma.node.create({
+        data: {
         id: volumeId,
         title: encryptedTitle,
         type: NodeType.PAGE,
@@ -584,8 +586,20 @@ export async function importBookPdf(formData: FormData) {
             contentJson,
           },
         },
-      },
-    });
+        },
+      }),
+      prisma.storedAsset.create({
+        data: {
+          userId,
+          nodeId: volumeId,
+          objectKey: storedPdf.objectKey,
+          kind: StoredAssetKind.BOOK_PDF,
+          originalName: file.name || null,
+          mimeType: "application/pdf",
+          size: file.size,
+        },
+      }),
+    ]);
 
     revalidatePath(`/book/${collectionId}`);
     revalidatePath("/home", "layout");

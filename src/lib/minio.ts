@@ -97,6 +97,20 @@ export function getMinioContentImageReference(objectKey: string) {
   return `minio://${minioBucket}/${objectKey}`;
 }
 
+export async function removeMinioObject(objectKey: string) {
+  await ensureMinioBucket();
+  try {
+    await minioClient.removeObject(minioBucket, objectKey);
+  } catch (error) {
+    const code =
+      typeof error === "object" && error !== null && "code" in error
+        ? String(error.code)
+        : "";
+
+    if (code !== "NotFound" && code !== "NoSuchKey") throw error;
+  }
+}
+
 export async function optimizeAndStoreCover(file: File) {
   if (!ALLOWED_COVER_TYPES.has(file.type)) {
     throw new Error("Unsupported image format.");

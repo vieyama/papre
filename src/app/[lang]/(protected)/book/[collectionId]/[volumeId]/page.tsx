@@ -82,6 +82,7 @@ export default async function BookVolumePage({
         mode === 'form' ?
           <NodeContentEditor
             nodeId={volume.id}
+            userId={session.user.id}
             workspaceId={volume.workspaceId}
             initialContent={volume.content}
             initialUpdatedAt={volume.updatedAt}

@@ -256,6 +256,7 @@ export default async function NodePage({
         {node.type === NodeType.PAGE && (
           <NodeContentEditor
             nodeId={node.id}
+            userId={session.user.id}
             workspaceId={node.workspaceId}
             initialContent={content}
             initialUpdatedAt={lastUpdatedAt.toISOString()}

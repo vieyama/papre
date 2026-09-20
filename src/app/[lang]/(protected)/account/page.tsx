@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { KeyRoundIcon } from "lucide-react";
+import { ImagesIcon, KeyRoundIcon } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
@@ -128,6 +128,19 @@ export default async function AccountPage({
           />
         </CardContent>
       </Card>
+
+      <div className="flex items-center justify-between gap-4 border-y py-5">
+        <div className="flex min-w-0 items-center gap-3">
+          <ImagesIcon className="size-5 shrink-0 text-muted-foreground" />
+          <div>
+            <p className="font-medium">{dict.gallery.title}</p>
+            <p className="text-sm text-muted-foreground">{dict.gallery.accountDescription}</p>
+          </div>
+        </div>
+        <Button variant="outline" asChild>
+          <Link href={localeHref("/account/gallery", locale)}>{dict.gallery.openGallery}</Link>
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>

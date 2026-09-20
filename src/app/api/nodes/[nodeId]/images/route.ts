@@ -1,5 +1,6 @@
 import { auth } from "@/auth";
 import { WorkspaceRole } from "@/generated/prisma/client";
+import { StoredAssetKind } from "@/generated/prisma/client";
 import { storeContentImage } from "@/lib/minio";
 import prisma from "@/lib/prisma";
 import {
@@ -87,6 +88,31 @@ export async function POST(
   try {
     const stored = await storeContentImage(file);
     const imageKey = stored.objectKey.slice("content/".length);
+
+    await prisma.storedAsset.upsert({
+      where: {
+        userId_nodeId_objectKey: {
+          userId,
+          nodeId: node.id,
+          objectKey: stored.objectKey,
+        },
+      },
+      create: {
+        userId,
+        nodeId: node.id,
+        objectKey: stored.objectKey,
+        kind: StoredAssetKind.CONTENT_IMAGE,
+        originalName: file.name || null,
+        mimeType: file.type,
+        size: file.size,
+      },
+      update: {
+        nodeId: node.id,
+        originalName: file.name || null,
+        mimeType: file.type,
+        size: file.size,
+      },
+    });
 
     return Response.json({
       url: `/api/nodes/${node.id}/images/${imageKey}`,

@@ -1,6 +1,7 @@
 import { Readable } from "node:stream";
 import { auth } from "@/auth";
 import { WorkspaceRole } from "@/generated/prisma/client";
+import { StoredAssetKind } from "@/generated/prisma/client";
 import {
   ensureMinioBucket,
   getMinioObjectKey,
@@ -162,14 +163,34 @@ export async function POST(
   try {
     const storedCover = await optimizeAndStoreCover(file);
 
-    await prisma.node.update({
-      where: {
-        id: node.id,
-      },
-      data: {
-        coverImage: storedCover.reference,
-      },
-    });
+    await prisma.$transaction([
+      prisma.node.update({
+        where: { id: node.id },
+        data: { coverImage: storedCover.reference },
+      }),
+      prisma.storedAsset.upsert({
+        where: {
+          userId_nodeId_objectKey: {
+            userId,
+            nodeId: node.id,
+            objectKey: storedCover.objectKey,
+          },
+        },
+        create: {
+          userId,
+          nodeId: node.id,
+          objectKey: storedCover.objectKey,
+          kind: StoredAssetKind.COVER_IMAGE,
+          originalName: file.name || null,
+          mimeType: "image/webp",
+          size: file.size,
+        },
+        update: {
+          nodeId: node.id,
+          originalName: file.name || null,
+        },
+      }),
+    ]);
 
     return Response.json({
       coverImage: `/api/nodes/${node.id}/cover?v=${encodeURIComponent(
