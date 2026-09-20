@@ -360,6 +360,7 @@ const en = {
     description: "View and manage images and PDF files stored by your account.",
     accountDescription: "Review your uploaded images and PDFs.",
     openGallery: "Open gallery",
+    bucketLabel: "Bucket",
     emptyTitle: "No uploaded files",
     emptyDescription: "Images, covers, and imported PDFs will appear here.",
     deleteFile: "Delete file",

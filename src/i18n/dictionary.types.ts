@@ -272,6 +272,7 @@ export interface Dictionary {
     description: string;
     accountDescription: string;
     openGallery: string;
+    bucketLabel: string;
     emptyTitle: string;
     emptyDescription: string;
     deleteFile: string;

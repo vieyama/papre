@@ -358,6 +358,7 @@ const id = {
     description: "Lihat dan kelola gambar serta PDF yang disimpan oleh akunmu.",
     accountDescription: "Tinjau gambar dan PDF yang telah diunggah.",
     openGallery: "Buka galeri",
+    bucketLabel: "Bucket",
     emptyTitle: "Belum ada file",
     emptyDescription: "Gambar, sampul, dan PDF yang diimpor akan muncul di sini.",
     deleteFile: "Hapus file",

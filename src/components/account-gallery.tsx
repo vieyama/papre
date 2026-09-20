@@ -23,6 +23,23 @@ function formatBytes(bytes: number) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function groupAssets(assets: GalleryAsset[]) {
+  const buckets = new Map<string, Map<string, GalleryAsset[]>>();
+
+  for (const asset of assets) {
+    const folders = buckets.get(asset.bucket) ?? new Map<string, GalleryAsset[]>();
+    const folderAssets = folders.get(asset.folder) ?? [];
+    folderAssets.push(asset);
+    folders.set(asset.folder, folderAssets);
+    buckets.set(asset.bucket, folders);
+  }
+
+  return [...buckets].map(([bucket, folders]) => ({
+    bucket,
+    folders: [...folders],
+  }));
+}
+
 export function AccountGallery({ assets }: { assets: GalleryAsset[] }) {
   const dict = useDictionary();
   const router = useRouter();
@@ -65,57 +82,84 @@ export function AccountGallery({ assets }: { assets: GalleryAsset[] }) {
     );
   }
 
+  const groupedAssets = groupAssets(assets);
+
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-        {assets.map((asset) => {
-          const isImage = asset.mimeType.startsWith("image/");
+      <div className="space-y-10">
+        {groupedAssets.map(({ bucket, folders }) => (
+          <section key={bucket}>
+            <div className="mb-5 flex items-baseline gap-2 border-b pb-3">
+              <span className="text-xs font-medium uppercase text-muted-foreground">
+                {dict.gallery.bucketLabel}
+              </span>
+              <h2 className="font-semibold">{bucket}</h2>
+            </div>
 
-          return (
-            <article key={asset.id} className="overflow-hidden rounded-md border bg-card">
-              <a
-                href={asset.url}
-                target="_blank"
-                rel="noreferrer"
-                className="flex aspect-square items-center justify-center bg-muted"
-              >
-                {isImage ? (
-                  // The authenticated endpoint cannot be handled by next/image.
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={asset.url}
-                    alt={asset.name}
-                    className="size-full object-cover"
-                    loading="lazy"
-                  />
-                ) : (
-                  <FileTextIcon className="size-12 text-red-500" aria-hidden="true" />
-                )}
-              </a>
-              <div className="flex items-start gap-2 p-3">
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium" title={asset.name}>
-                    {asset.name}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {formatBytes(asset.size)}
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  size="icon-sm"
-                  variant="ghost"
-                  className="shrink-0 text-destructive hover:text-destructive"
-                  title={dict.gallery.deleteFile}
-                  onClick={() => setSelected(asset)}
-                >
-                  <Trash2Icon />
-                  <span className="sr-only">{dict.gallery.deleteFile}</span>
-                </Button>
-              </div>
-            </article>
-          );
-        })}
+            <div className="space-y-8">
+              {folders.map(([folder, folderAssets]) => (
+                <section key={folder}>
+                  <div className="mb-3 flex items-center gap-2">
+                    <span className="text-sm font-medium">{folder}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {folderAssets.length}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                    {folderAssets.map((asset) => {
+                      const isImage = asset.mimeType.startsWith("image/");
+
+                      return (
+                        <article key={asset.id} className="overflow-hidden rounded-md border bg-card">
+                          <a
+                            href={asset.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex aspect-square items-center justify-center bg-muted"
+                          >
+                            {isImage ? (
+                              // The authenticated endpoint cannot be handled by next/image.
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img
+                                src={asset.url}
+                                alt={asset.name}
+                                className="size-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <FileTextIcon className="size-12 text-red-500" aria-hidden="true" />
+                            )}
+                          </a>
+                          <div className="flex items-start gap-2 p-3">
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium" title={asset.name}>
+                                {asset.name}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {formatBytes(asset.size)}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              size="icon-sm"
+                              variant="ghost"
+                              className="shrink-0 text-destructive hover:text-destructive"
+                              title={dict.gallery.deleteFile}
+                              onClick={() => setSelected(asset)}
+                            >
+                              <Trash2Icon />
+                              <span className="sr-only">{dict.gallery.deleteFile}</span>
+                            </Button>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                </section>
+              ))}
+            </div>
+          </section>
+        ))}
       </div>
 
       <Dialog open={selected !== null} onOpenChange={(open) => !open && setSelected(null)}>

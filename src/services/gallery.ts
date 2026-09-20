@@ -18,6 +18,8 @@ import { sanitizePageContent } from "@/lib/sanitize-page-content";
 
 export type GalleryAsset = {
   id: string;
+  bucket: string;
+  folder: string;
   kind: StoredAssetKind;
   name: string;
   mimeType: string;
@@ -156,6 +158,10 @@ export async function getGalleryAssets(userId: string): Promise<GalleryAsset[]> 
 
       return {
         id: asset.id,
+        bucket: minioBucket,
+        folder: asset.objectKey.includes("/")
+          ? asset.objectKey.slice(0, asset.objectKey.lastIndexOf("/"))
+          : "/",
         kind: asset.kind,
         name: asset.originalName || asset.objectKey.split("/").at(-1) || "File",
         mimeType,
