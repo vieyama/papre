@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   reactCompiler: true,
   output: "standalone",
   experimental: {
-    proxyClientMaxBodySize: "100mb",
+    proxyClientMaxBodySize: "110mb",
     serverActions: {
       bodySizeLimit: "110mb",
     },

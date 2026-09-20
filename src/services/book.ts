@@ -15,6 +15,7 @@ import {
 import { storeBookPdf } from "@/lib/minio";
 import prisma from "@/lib/prisma";
 import { sanitizePageContent } from "@/lib/sanitize-page-content";
+import { assertUploadRateLimit } from "@/lib/upload-security";
 import { getWorkspaceAccess } from "@/lib/workspace-access";
 import {
   BOOK_COLLECTION_ICON,
@@ -526,6 +527,17 @@ export async function importBookPdf(formData: FormData) {
 
   if (!(file instanceof File)) {
     return { error: "Choose a PDF file to import." };
+  }
+
+  try {
+    assertUploadRateLimit(userId, "book-pdf");
+  } catch (error) {
+    return {
+      error:
+        error instanceof Error
+          ? error.message
+          : "Too many uploads. Please wait before trying again.",
+    };
   }
 
   const result = await getBookCollectionForEdit(

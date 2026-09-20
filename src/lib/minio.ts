@@ -3,11 +3,13 @@ import "server-only";
 import { createHash, randomUUID } from "node:crypto";
 import { Client } from "minio";
 import sharp from "sharp";
+import {
+  MAX_BOOK_PDF_BYTES,
+  MAX_CONTENT_IMAGE_BYTES,
+  MAX_COVER_BYTES,
+} from "@/lib/upload-security";
 
 const DEFAULT_BUCKET = "papre";
-const MAX_COVER_BYTES = 10 * 1024 * 1024;
-const MAX_BOOK_PDF_BYTES = 100 * 1024 * 1024;
-const MAX_CONTENT_IMAGE_BYTES = 20 * 1024 * 1024;
 const ALLOWED_COVER_TYPES = new Set([
   "image/avif",
   "image/gif",
@@ -21,7 +23,6 @@ const CONTENT_IMAGE_EXTENSIONS: Record<string, string> = {
   "image/jpeg": "jpg",
   "image/png": "png",
   "image/webp": "webp",
-  "image/svg+xml": "svg",
 };
 
 const globalForMinio = globalThis as unknown as {
@@ -106,6 +107,8 @@ export async function optimizeAndStoreCover(file: File) {
   }
 
   const input = Buffer.from(await file.arrayBuffer());
+  assertImageMagicBytes(input, file.type);
+
   const optimized = await sharp(input, {
     animated: false,
     limitInputPixels: 40_000_000,
@@ -171,6 +174,8 @@ export async function storeContentImage(file: File) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+  assertImageMagicBytes(buffer, file.type);
+
   const hash = createHash("sha256").update(buffer).digest("hex");
   const objectKey = `content/${hash}.${extension}`;
 
@@ -188,11 +193,17 @@ export async function storeContentImage(file: File) {
       throw error;
     }
 
-    await minioClient.putObject(minioBucket, objectKey, buffer, buffer.byteLength, {
-      "Content-Type": file.type,
-      "Cache-Control": "private, max-age=31536000, immutable",
-      "X-Amz-Meta-Sha256": hash,
-    });
+    await minioClient.putObject(
+      minioBucket,
+      objectKey,
+      buffer,
+      buffer.byteLength,
+      {
+        "Content-Type": file.type,
+        "Cache-Control": "private, max-age=31536000, immutable",
+        "X-Amz-Meta-Sha256": hash,
+      },
+    );
   }
 
   return {
@@ -216,10 +227,15 @@ export async function storeBookPdf(file: File) {
   }
 
   const buffer = Buffer.from(await file.arrayBuffer());
+
+  if (!buffer.subarray(0, 5).equals(Buffer.from("%PDF-"))) {
+    throw new Error("Only valid PDF files can be imported.");
+  }
+
   const objectKey = `books/${randomUUID()}.pdf`;
 
   await ensureMinioBucket();
-  
+
   await minioClient.putObject(
     minioBucket,
     objectKey,
@@ -235,4 +251,30 @@ export async function storeBookPdf(file: File) {
     objectKey,
     reference: getMinioBookPdfReference(objectKey),
   };
+}
+
+function assertImageMagicBytes(buffer: Buffer, contentType: string) {
+  const isValid =
+    (contentType === "image/avif" &&
+      buffer.subarray(4, 12).equals(Buffer.from("ftypavif"))) ||
+    (contentType === "image/gif" &&
+      (buffer.subarray(0, 6).equals(Buffer.from("GIF87a")) ||
+        buffer.subarray(0, 6).equals(Buffer.from("GIF89a")))) ||
+    (contentType === "image/jpeg" &&
+      buffer[0] === 0xff &&
+      buffer[1] === 0xd8 &&
+      buffer[2] === 0xff) ||
+    (contentType === "image/png" &&
+      buffer
+        .subarray(0, 8)
+        .equals(
+          Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+        )) ||
+    (contentType === "image/webp" &&
+      buffer.subarray(0, 4).equals(Buffer.from("RIFF")) &&
+      buffer.subarray(8, 12).equals(Buffer.from("WEBP")));
+
+  if (!isValid) {
+    throw new Error("Uploaded image content does not match its file type.");
+  }
 }

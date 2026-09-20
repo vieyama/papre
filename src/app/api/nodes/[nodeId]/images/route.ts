@@ -2,6 +2,11 @@ import { auth } from "@/auth";
 import { WorkspaceRole } from "@/generated/prisma/client";
 import { storeContentImage } from "@/lib/minio";
 import prisma from "@/lib/prisma";
+import {
+  assertRequestBodyWithinLimit,
+  assertUploadRateLimit,
+  getUploadRejectionStatus,
+} from "@/lib/upload-security";
 
 export const runtime = "nodejs";
 
@@ -47,11 +52,29 @@ export async function POST(
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  try {
+    assertRequestBodyWithinLimit(request, "content-image");
+  } catch (error) {
+    return Response.json(
+      { error: error instanceof Error ? error.message : "Upload rejected." },
+      { status: getUploadRejectionStatus(error) },
+    );
+  }
+
   const { nodeId } = await params;
   const node = await canEditNode(nodeId, userId);
 
   if (!node) {
     return Response.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  try {
+    assertUploadRateLimit(userId, "content-image");
+  } catch (error) {
+    return Response.json(
+      { error: error instanceof Error ? error.message : "Upload rejected." },
+      { status: getUploadRejectionStatus(error) },
+    );
   }
 
   const formData = await request.formData();
