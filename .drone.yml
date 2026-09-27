@@ -55,49 +55,29 @@ steps:
         from_secret: DATABASE_URL
     commands:
       - |
-        set -eu
-        : "$${POSTGRES_USER:?POSTGRES_USER secret is required}"
-        : "$${POSTGRES_PASSWORD:?POSTGRES_PASSWORD secret is required}"
-        : "$${POSTGRES_DB:?POSTGRES_DB secret is required}"
-        : "$${AUTH_SECRET:?AUTH_SECRET secret is required}"
-        : "$${AUTH_URL:?AUTH_URL secret is required}"
-        : "$${GOOGLE_CLIENT_ID:?GOOGLE_CLIENT_ID secret is required}"
-        : "$${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET secret is required}"
-        : "$${APP_PORT:?APP_PORT secret is required}"
-        : "$${DATA_ENCRYPTION_MASTER_KEY:?DATA_ENCRYPTION_MASTER_KEY secret is required}"
-        : "$${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY secret is required}"
-        : "$${MINIO_SECRET_KEY:?MINIO_SECRET_KEY secret is required}"
-        : "$${MINIO_BUCKET:?MINIO_BUCKET secret is required}"
-        : "$${SMTP_HOST:?SMTP_HOST secret is required}"
-        : "$${SMTP_PORT:?SMTP_PORT secret is required}"
-        : "$${SMTP_FROM_ADDRESS:?SMTP_FROM_ADDRESS secret is required}"
-        : "$${SMTP_FROM_NAME:?SMTP_FROM_NAME secret is required}"
-        : "$${SMTP_USERNAME:?SMTP_USERNAME secret is required}"
-        : "$${SMTP_PASSWORD:?SMTP_PASSWORD secret is required}"
-
-        {
-          printf 'POSTGRES_USER=%s\n' "$${POSTGRES_USER}"
-          printf 'POSTGRES_PASSWORD=%s\n' "$${POSTGRES_PASSWORD}"
-          printf 'POSTGRES_DB=%s\n' "$${POSTGRES_DB}"
-          printf 'DATABASE_URL=%s\n' "$${DATABASE_URL}"
-          printf 'AUTH_SECRET=%s\n' "$${AUTH_SECRET}"
-          printf 'AUTH_URL=%s\n' "$${AUTH_URL}"
-          printf 'GOOGLE_CLIENT_ID=%s\n' "$${GOOGLE_CLIENT_ID}"
-          printf 'GOOGLE_CLIENT_SECRET=%s\n' "$${GOOGLE_CLIENT_SECRET}"
-          printf 'APP_BIND_ADDRESS=0.0.0.0\n'
-          printf 'APP_PORT=%s\n' "$${APP_PORT}"
-          printf 'DATA_ENCRYPTION_MASTER_KEY=%s\n' "$${DATA_ENCRYPTION_MASTER_KEY}"
-          printf 'MINIO_ACCESS_KEY=%s\n' "$${MINIO_ACCESS_KEY}"
-          printf 'MINIO_SECRET_KEY=%s\n' "$${MINIO_SECRET_KEY}"
-          printf 'MINIO_BUCKET=%s\n' "$${MINIO_BUCKET}"
-          printf 'SMTP_HOST=%s\n' "$${SMTP_HOST}"
-          printf 'SMTP_PORT=%s\n' "$${SMTP_PORT}"
-          printf 'SMTP_FROM_ADDRESS=%s\n' "$${SMTP_FROM_ADDRESS}"
-          printf 'SMTP_FROM_NAME=%s\n' "$${SMTP_FROM_NAME}"
-          printf 'SMTP_USERNAME=%s\n' "$${SMTP_USERNAME}"
-          printf 'SMTP_PASSWORD=%s\n' "$${SMTP_PASSWORD}"
-          printf 'COMPOSE_PROJECT_NAME=papre\n'
-        } > /drone/src/.env
+        cat > /drone/src/.env <<EOF
+        POSTGRES_USER=$${POSTGRES_USER}
+        POSTGRES_PASSWORD=$${POSTGRES_PASSWORD}
+        POSTGRES_DB=$${POSTGRES_DB}
+        DATABASE_URL=$${DATABASE_URL}
+        AUTH_SECRET=$${AUTH_SECRET}
+        AUTH_URL=$${AUTH_URL}
+        GOOGLE_CLIENT_ID=$${GOOGLE_CLIENT_ID}
+        GOOGLE_CLIENT_SECRET=$${GOOGLE_CLIENT_SECRET}
+        APP_BIND_ADDRESS=0.0.0.0
+        APP_PORT=$${APP_PORT}
+        DATA_ENCRYPTION_MASTER_KEY=$${DATA_ENCRYPTION_MASTER_KEY}
+        MINIO_ACCESS_KEY=$${MINIO_ACCESS_KEY}
+        MINIO_SECRET_KEY=$${MINIO_SECRET_KEY}
+        MINIO_BUCKET=$${MINIO_BUCKET}
+        SMTP_HOST=$${SMTP_HOST}
+        SMTP_PORT=$${SMTP_PORT}
+        SMTP_FROM_ADDRESS=$${SMTP_FROM_ADDRESS}
+        SMTP_FROM_NAME=$${SMTP_FROM_NAME}
+        SMTP_USERNAME=$${SMTP_USERNAME}
+        SMTP_PASSWORD=$${SMTP_PASSWORD}
+        COMPOSE_PROJECT_NAME=papre
+        EOF
 
   # ─────────────────────────────────────────
   # 2. Deploy via Docker Compose
@@ -110,7 +90,6 @@ steps:
     commands:
       - apk add --no-cache docker-cli-compose
       - cd /drone/src
-      - test -s .env
       - docker compose down --remove-orphans
       - docker compose up -d --build
       - docker compose ps
