@@ -13,6 +13,8 @@ import { updateNodeContent } from "@/services/node";
 
 const AUTOSAVE_DELAY_MS = 700;
 
+class ServerSaveError extends Error {}
+
 export function NodeContentEditor({
   nodeId,
   userId,
@@ -50,7 +52,7 @@ export function NodeContentEditor({
       });
 
       if (result.error) {
-        throw new Error(result.error);
+        throw new ServerSaveError(result.error);
       }
 
       return {
@@ -66,8 +68,20 @@ export function NodeContentEditor({
         latestContent.current === content ? "saved" : "pending",
       );
     },
-    onError: () => {
-      setSaveState(navigator.onLine ? "error" : "local");
+    onError: async (error) => {
+      if (error instanceof ServerSaveError) {
+        setSaveState("error");
+        return;
+      }
+
+      try {
+        const draft = await getOfflineDraft(userId, nodeId);
+        setSaveState(
+          draft?.content === latestContent.current ? "local" : "error",
+        );
+      } catch {
+        setSaveState("error");
+      }
     },
   });
 

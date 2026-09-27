@@ -104,7 +104,7 @@ export function NodeTreeItem({
                     )}
 
                     {canEdit && (
-                        <DropdownMenu>
+                        <DropdownMenu modal={false}>
                             <DropdownMenuTrigger asChild>
                                 <SidebarMenuAction className="cursor-pointer" showOnHover>
                                     <MoreHorizontalIcon />

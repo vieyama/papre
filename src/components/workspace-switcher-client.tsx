@@ -224,7 +224,7 @@ export function WorkspaceSwitcherClient({
         <>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <DropdownMenu>
+                    <DropdownMenu modal={false}>
                         <DropdownMenuTrigger asChild>
                             <SidebarMenuButton
                                 size="lg"
