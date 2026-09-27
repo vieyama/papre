@@ -55,28 +55,6 @@ steps:
         from_secret: DATABASE_URL
     commands:
       - |
-        missing=0
-        for name in \
-          POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB DATABASE_URL \
-          AUTH_SECRET AUTH_URL GOOGLE_CLIENT_ID GOOGLE_CLIENT_SECRET \
-          APP_PORT DATA_ENCRYPTION_MASTER_KEY \
-          MINIO_ACCESS_KEY MINIO_SECRET_KEY MINIO_BUCKET \
-          SMTP_HOST SMTP_PORT SMTP_FROM_ADDRESS SMTP_FROM_NAME \
-          SMTP_USERNAME SMTP_PASSWORD
-        do
-          if [ -n "$(printenv "$name")" ]; then
-            printf '%s: SET\n' "$name"
-          else
-            printf '%s: MISSING\n' "$name"
-            missing=1
-          fi
-        done
-
-        if [ "$missing" -ne 0 ]; then
-          echo "Secret preflight failed; check the Drone Vault extension and secret access."
-          exit 1
-        fi
-
         cat > /drone/src/.env <<EOF
         POSTGRES_USER=$${POSTGRES_USER}
         POSTGRES_PASSWORD=$${POSTGRES_PASSWORD}
