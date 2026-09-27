@@ -26,18 +26,11 @@ export async function generateMetadata({
   };
 }
 
-type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
-
 export default async function BookVolumePage({
   params,
-  searchParams
 }: {
   params: Promise<{ lang: string; collectionId: string; volumeId: string }>;
-  searchParams: SearchParams;
 }) {
-  const resolvedParams = await searchParams;
-  const mode = resolvedParams.mode;
-
   const { lang, collectionId, volumeId } = await params;
   const locale = hasLocale(lang) ? lang : defaultLocale;
   const dict = await getDictionary(locale);
@@ -58,8 +51,14 @@ export default async function BookVolumePage({
   }
 
   return (
-    <div className="mx-auto flex  w-full max-w-7xl flex-col px-4 py-1 sm:px-8">
-      <div className="flex mb-2 justify-between items-center">
+    <div
+      className={`mx-auto flex w-full max-w-7xl flex-col px-4 py-1 sm:px-8 ${
+        volume.kind === "pdf"
+          ? "md:h-[calc(100dvh-4.5rem)] md:overflow-hidden"
+          : ""
+      }`}
+    >
+      <div className="mb-2 flex shrink-0 items-center justify-between">
         <Button asChild variant="ghost" size="sm">
           <Link href={localeHref(`/book/${volume.collectionId}`, locale)}>
             <ArrowLeftIcon />
@@ -77,22 +76,25 @@ export default async function BookVolumePage({
       </div>
 
       {volume.kind === "pdf" && volume.pdfUrl ? (
-        <PDFViewer pdfUrl={volume.pdfUrl} />
+        <div className="min-h-0 flex-1">
+          <PDFViewer pdfUrl={volume.pdfUrl} />
+        </div>
+      ) : volume.canEdit ? (
+        <NodeContentEditor
+          nodeId={volume.id}
+          userId={session.user.id}
+          workspaceId={volume.workspaceId}
+          initialContent={volume.content}
+          initialUpdatedAt={volume.updatedAt}
+          editable
+        />
       ) : (
-        mode === 'form' ?
-          <NodeContentEditor
-            nodeId={volume.id}
-            userId={session.user.id}
-            workspaceId={volume.workspaceId}
-            initialContent={volume.content}
-            initialUpdatedAt={volume.updatedAt}
-            editable={volume.canEdit}
-          /> : <div
+        <div
           className="p-4"
-            dangerouslySetInnerHTML={{
-                __html: volume?.content,
-            }}
-          />
+          dangerouslySetInnerHTML={{
+            __html: volume.content,
+          }}
+        />
       )}
     </div>
   );

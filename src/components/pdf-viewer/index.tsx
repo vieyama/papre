@@ -1,9 +1,11 @@
 'use client'
 
-import { useEffect, useRef } from 'react';
-import { createPluginRegistration } from '@embedpdf/core';
+import { useEffect, useMemo, useRef } from 'react';
+import { createPluginRegistration, type DocumentState } from '@embedpdf/core';
 import { EmbedPDF } from '@embedpdf/core/react';
 import { usePdfiumEngine } from '@embedpdf/engines/react';
+import { AlertCircleIcon, LoaderCircleIcon, RefreshCwIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 // Import the essential plugins
 import { Viewport, ViewportPluginPackage } from '@embedpdf/plugin-viewport/react';
@@ -234,28 +236,108 @@ const LongPressToSelect = ({
     return null;
 };
 
+const PdfLoadingState = ({ progress, label }: { progress?: number; label: string }) => {
+    const normalizedProgress = progress === undefined
+        ? undefined
+        : Math.min(100, Math.max(0, progress <= 1 ? progress * 100 : progress));
+
+    return (
+        <div className="flex h-full min-h-80 items-center justify-center rounded-xl border border-gray-300 bg-white px-6 dark:border-gray-700 dark:bg-gray-900">
+            <div className="w-full max-w-xs text-center">
+                <LoaderCircleIcon className="mx-auto size-6 animate-spin text-muted-foreground" />
+                <p className="mt-3 text-sm font-medium">{label}</p>
+                <div
+                    className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted"
+                    role="progressbar"
+                    aria-label={label}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={normalizedProgress === undefined ? undefined : Math.round(normalizedProgress)}
+                >
+                    <div
+                        className={normalizedProgress === undefined
+                            ? "h-full w-1/3 animate-pulse rounded-full bg-primary"
+                            : "h-full rounded-full bg-primary transition-[width] duration-200"
+                        }
+                        style={normalizedProgress === undefined
+                            ? undefined
+                            : { width: `${normalizedProgress}%` }
+                        }
+                    />
+                </div>
+                {normalizedProgress !== undefined && (
+                    <p className="mt-2 text-xs tabular-nums text-muted-foreground">
+                        {Math.round(normalizedProgress)}%
+                    </p>
+                )}
+            </div>
+        </div>
+    );
+};
+
+const PdfErrorState = ({ message }: { message?: string | null }) => (
+    <div className="flex h-full min-h-80 items-center justify-center rounded-xl border border-destructive/30 bg-white px-6 dark:bg-gray-900">
+        <div className="max-w-sm text-center">
+            <AlertCircleIcon className="mx-auto size-7 text-destructive" />
+            <p className="mt-3 text-sm font-medium">Unable to load this PDF</p>
+            {message && (
+                <p className="mt-1 text-xs text-muted-foreground">{message}</p>
+            )}
+            <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={() => window.location.reload()}
+            >
+                <RefreshCwIcon />
+                Retry
+            </Button>
+        </div>
+    </div>
+);
+
+const PdfDocumentStatus = ({ document }: { document: DocumentState | null }) => {
+    if (!document) {
+        return <PdfLoadingState label="Preparing PDF..." />;
+    }
+
+    if (document.status === 'error') {
+        return <PdfErrorState message={document.error} />;
+    }
+
+    if (document.status === 'loading') {
+        return (
+            <PdfLoadingState
+                label="Loading PDF..."
+                progress={document.loadingProgress}
+            />
+        );
+    }
+
+    return null;
+};
+
 export const PDFViewer = ({ pdfUrl, initialPage, onSaveLastReadPage }: PDFViewerProps) => {
     // 1. Register the plugins you need
-    const plugins = [
-        createPluginRegistration(DocumentManagerPluginPackage, {
-            initialDocuments: [{ url: pdfUrl ?? 'https://snippet.embedpdf.com/ebook.pdf' }],
-        }),
-        createPluginRegistration(ViewportPluginPackage),
-        createPluginRegistration(ScrollPluginPackage),
-        createPluginRegistration(RenderPluginPackage),
-
-        // Add the zoom plugin to the array
-        createPluginRegistration(InteractionManagerPluginPackage),
-        createPluginRegistration(ZoomPluginPackage, {
-            defaultZoomLevel: ZoomMode.Automatic,
-        }),
-
-        createPluginRegistration(InteractionManagerPluginPackage),
-        createPluginRegistration(SelectionPluginPackage),
-
-    ];
+    const plugins = useMemo(
+        () => [
+            createPluginRegistration(DocumentManagerPluginPackage, {
+                initialDocuments: [{ url: pdfUrl }],
+            }),
+            createPluginRegistration(ViewportPluginPackage),
+            createPluginRegistration(ScrollPluginPackage),
+            createPluginRegistration(RenderPluginPackage),
+            createPluginRegistration(InteractionManagerPluginPackage),
+            createPluginRegistration(ZoomPluginPackage, {
+                defaultZoomLevel: ZoomMode.Automatic,
+            }),
+            createPluginRegistration(SelectionPluginPackage),
+        ],
+        [pdfUrl],
+    );
     // 2. Initialize the engine with the React hook
-    const { engine, isLoading } = usePdfiumEngine();
+    const { engine, isLoading, error: engineError } = usePdfiumEngine();
 
     const config = {
         permissions: {
@@ -266,20 +348,24 @@ export const PDFViewer = ({ pdfUrl, initialPage, onSaveLastReadPage }: PDFViewer
         }
     };
 
+    if (engineError) {
+        return <PdfErrorState message={engineError.message} />;
+    }
+
     if (isLoading || !engine) {
-        return <div>Loading PDF Engine...</div>;
+        return <PdfLoadingState label="Preparing PDF reader..." />;
     }
 
     // 3. Wrap your UI with the <EmbedPDF> provider
     return (
-        <div style={{ height: '100%' }}>
+        <div className="h-full min-h-0">
             <EmbedPDF engine={engine} config={config} plugins={plugins}>
-                {({ activeDocumentId }) =>
-                    activeDocumentId && (
+                {({ activeDocumentId, activeDocument }) =>
+                    activeDocumentId && activeDocument?.status === 'loaded' ? (
                         <DocumentContent documentId={activeDocumentId}>
                             {({ isLoaded }) =>
                                 isLoaded && (
-                                    <div className="overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                                    <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-gray-300 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900">
                                         {/* Headless: restores + reports last read page, renders nothing */}
                                         <LastReadPageSync
                                             documentId={activeDocumentId}
@@ -293,7 +379,7 @@ export const PDFViewer = ({ pdfUrl, initialPage, onSaveLastReadPage }: PDFViewer
                                         <ZoomToolbar documentId={activeDocumentId} />
                                         {/* PDF Viewer Area */}
                                         <div
-                                            className="relative h-[78vh] sm:h-125"
+                                            className="relative h-[78vh] min-h-0 md:h-auto md:flex-1"
                                             style={{ userSelect: 'none' }}
                                         >
                                             <Viewport
@@ -336,6 +422,8 @@ export const PDFViewer = ({ pdfUrl, initialPage, onSaveLastReadPage }: PDFViewer
                                 )
                             }
                         </DocumentContent>
+                    ) : (
+                        <PdfDocumentStatus document={activeDocument} />
                     )
                 }
             </EmbedPDF>

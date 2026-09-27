@@ -110,7 +110,7 @@ export function BookCollectionDetail({
 
       setManualTitle("");
       setOpen(false);
-      router.push(localeHref(`/book/${collection.id}/${result.volume.id}?mode=create`, lang));
+      router.push(localeHref(`/book/${collection.id}/${result.volume.id}`, lang));
       router.refresh();
     });
   }
